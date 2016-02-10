@@ -2,6 +2,8 @@
 
 A little helper to encode+upload/download+decode files to/from S3.
 
+USE AT YOUR OWN RISK!
+
 # Samples
 
 Generate AES key:
