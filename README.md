@@ -73,3 +73,24 @@ Decode file (AES):
 	    --file2=testdata/s3tool-0.0.1-SNAPSHOT.jar.dec \
 	    --command=decode \
 	    --aesKey=$AES_KEY
+
+Upload all new jar files in directory 'relX' to S3 bucket (prepend keys with 'releaseX/'):
+
+	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
+		--accessKey=XXX \
+		--secretKey=XXX \
+		--bucketName=xxx.swreleases \
+		--command=upSync \
+		--directory=relX \
+		--filenamePattern='.*\.jar' \
+		--prefix=releaseX/
+		
+Download all new jar files (with key prefix 'releaseX/') from S3 bucket to directory 'relX':
+		
+	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
+		--accessKey=XXX \
+		--secretKey=XXX \
+		--bucketName=xxx.swreleases \
+		--command=downSync \
+		--directory=relX \
+		--prefix=releaseX/
