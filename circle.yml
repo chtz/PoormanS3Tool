@@ -1,3 +1,0 @@
-general:
-  artifacts:
-    - "target/s3tool-0.0.1-SNAPSHOT.jar"
