@@ -4,10 +4,15 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 
@@ -20,12 +25,18 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 @SpringBootApplication
 public class S3ToolApp {
+	private static final String USER_META_LAST_MODIFIED = "lastmodified";
+
 	public static void main(String[] args) {
 		try {
 			SpringApplication.run(S3ToolApp.class, args).getBean(S3ToolApp.class).run();
@@ -62,6 +73,9 @@ public class S3ToolApp {
 	@Value(value="${key:}")
 	private String key;
 	
+	@Value(value="${prefix:}")
+	private String prefix;
+	
 	@Value(value="${keyPublic:false}")
 	private String keyPublic;
 	
@@ -70,6 +84,12 @@ public class S3ToolApp {
 	
 	@Value(value="${file2:}")
 	private String filename2;
+	
+	@Value(value="${directory:}")
+	private String directoryname;
+	
+	@Value(value="${filenamePattern:}")
+	private String filenamePatternString;
 	
 	@Value(value="${url:}")
 	private String url;
@@ -116,7 +136,69 @@ public class S3ToolApp {
 		else if ("download".equals(command)) {
 			download();
 		}
+		else if ("upSync".equals(command)) {
+			upSync();
+		}
 	 	else throw new RuntimeException("unknown command: '"  + command + "'");
+	}
+
+	private void upSync() throws FileNotFoundException, IOException {
+		final Map<String,Long> lastModifiedByShortKey = listShortKeysWithLastModifiedMeta(bucketName, prefix);
+		
+		File directory = new File(directoryname);
+		final Pattern filenamePattern = Pattern.compile(filenamePatternString); 
+		for (File file : directory.listFiles(new FilenameFilter() {
+			@Override
+			public boolean accept(File dir, String name) {
+				return filenamePattern.matcher(name).matches();
+			}
+		})) {
+			String shortKey = file.getName();
+			String key = prefix + shortKey;
+			
+			if (lastModifiedByShortKey.containsKey(shortKey)) {
+				long lastModifiedS3 = lastModifiedByShortKey.get(shortKey);
+				
+				if (file.lastModified() > lastModifiedS3) {
+					putObject(file, key);
+					
+					syserr("uploaded newer " + file + " to " + key);
+				}
+				else {
+					syserr("ignored older " + file);
+				}
+			}
+			else {
+				putObject(file, key);
+				
+				syserr("uploaded initial " + file + " to " + key);
+			}
+		}
+	}
+
+	private Map<String,Long> listShortKeysWithLastModifiedMeta(String bucketName, String prefix) {
+		Map<String,Long> lastModifiedByShortKey = new HashMap<String, Long>();
+		ListObjectsRequest request = new ListObjectsRequest()
+				.withBucketName(bucketName)
+				.withPrefix(prefix);
+		ObjectListing listing = s3.listObjects(request);
+		for (;;) {
+			for (S3ObjectSummary  summary : listing.getObjectSummaries()) {
+				ObjectMetadata meta = s3.getObjectMetadata(new GetObjectMetadataRequest(summary.getBucketName(), summary.getKey()));
+				if (meta.getUserMetadata().get(USER_META_LAST_MODIFIED) != null) {
+					lastModifiedByShortKey.put(summary.getKey().substring(prefix.length()), 
+							new Long(meta.getUserMetadata().get(USER_META_LAST_MODIFIED)));
+				}
+			}
+			
+			if (listing.isTruncated()) {
+				listing = s3.listNextBatchOfObjects(listing);
+			}
+			else {
+				break;
+			}
+		}
+		return lastModifiedByShortKey;
 	}
 
 	private void download() throws IOException {
@@ -143,6 +225,13 @@ public class S3ToolApp {
 
 	private void putObject() throws IOException {
 		File plainFile = new File(filename);
+		String uploadKey = key;
+		putObject(plainFile, uploadKey);
+		
+		syserr("uploaded " + plainFile + " to " + key);
+	}
+
+	private void putObject(File plainFile, String uploadKey) throws IOException, FileNotFoundException {
 		File uploadFile = null;
 		try {
 			if (aesKey != null) {
@@ -158,9 +247,13 @@ public class S3ToolApp {
 			metadata.setContentLength(uploadFile.length());
 			metadata.setContentType(contentType);
 			
+			Map<String, String> userMetadata = new HashMap<String, String>();
+			userMetadata.put(USER_META_LAST_MODIFIED, Long.toString(plainFile.lastModified()));
+			metadata.setUserMetadata(userMetadata);
+			
 			InputStream uploadFileIn = new BufferedInputStream(new FileInputStream(uploadFile));
 			try {
-				PutObjectRequest request = new PutObjectRequest(bucketName, key, uploadFileIn, metadata);
+				PutObjectRequest request = new PutObjectRequest(bucketName, uploadKey, uploadFileIn, metadata);
 				
 				if ("true".equals(keyPublic)) {
 					request.withCannedAcl(CannedAccessControlList.PublicRead);
@@ -177,8 +270,6 @@ public class S3ToolApp {
 				uploadFile.delete();
 			}
 		}
-		
-		syserr("uploaded " + plainFile + " to " + key);
 	}
 
 	private void decode() throws IOException {
