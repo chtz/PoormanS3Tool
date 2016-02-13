@@ -41,9 +41,9 @@ public class CipherInputStream extends InputStream {
 				try {
 					data = cipher.doFinal();
 				} catch (IllegalBlockSizeException e) {
-					throw new IOException("crypto: IllegalBlockSize", e);
+					throw new IOException("crypto: illegal block size", e);
 				} catch (BadPaddingException e) {
-					throw new IOException("crypto: BadPadding", e);
+					throw new IOException("crypto: bad padding", e);
 				}
 			}
 			else {

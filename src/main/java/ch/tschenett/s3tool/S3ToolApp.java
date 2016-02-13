@@ -4,17 +4,12 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 
 import javax.annotation.PostConstruct;
-import javax.crypto.NoSuchPaddingException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.springframework.beans.factory.annotation.Value;
@@ -94,9 +89,11 @@ public class S3ToolApp {
 	@PostConstruct
 	public void init() {
 		s3 = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey));
+		
 		if (!"".equals(endpoint)) {
 			s3.setEndpoint(endpoint);
 		}
+		
 		aesKey = "".equals(aesKeyBase64) ? null : new AESKey(Base64.decodeBase64(aesKeyBase64));
 	}
 	
@@ -122,123 +119,101 @@ public class S3ToolApp {
 	 	else throw new RuntimeException("unknown command: '"  + command + "'");
 	}
 
-	private void download() throws IOException, MalformedURLException, InvalidKeyException, NoSuchAlgorithmException,
-			NoSuchPaddingException, FileNotFoundException {
+	private void download() throws IOException {
+		BufferedInputStream urlIn = new BufferedInputStream(new URL(url).openStream());
 		File file = new File(filename);
 		
-		BufferedInputStream in2 = new BufferedInputStream(new URL(url).openStream());
-		InputStream in = aesKey != null
-				? aesKey.decodingInputStream(in2)
-				: in2;
-		try {
-			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file));
-			try {
-				copyInToOut(in, out);
-				
-				syserr("downloaded " + url + " to " + filename);
-			}
-			finally {
-				out.close();
-			}
-		}
-		finally {
-			in.close();
-		}
+		decodeIfRequiredAndCopyToFileClosing(urlIn, file);
+		
+		syserr("downloaded " + url + " to " + file);
 	}
 
-	private void getObject() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException,
-			FileNotFoundException, IOException {
+	private void getObject() throws IOException {
+		BufferedInputStream s3In = new BufferedInputStream(s3.getObject(new GetObjectRequest(bucketName, key)).getObjectContent());
 		File file = new File(filename);
 		
-		BufferedInputStream in2 = new BufferedInputStream(s3.getObject(new GetObjectRequest(bucketName, key)).getObjectContent());
-		InputStream in = aesKey != null 
-				? aesKey.decodingInputStream(in2) 
-				: in2;
-		try {
-			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file));
-			try {
-				copyInToOut(in, out);
-				
-				syserr("downloaded " + key + " to " + filename);
-			}
-			finally {
-				out.close();
-			}
-		}
-		finally {
-			in.close();
-		}
+		decodeIfRequiredAndCopyToFileClosing(s3In, file);
+		
+		syserr("downloaded " + key + " to " + file);
 	}
 
-	private void putObject() throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException,
-			FileNotFoundException {
+	private void decodeIfRequiredAndCopyToFileClosing(InputStream in, File file) throws IOException {
+		copyInToFileClosing(aesKey != null ? aesKey.decodingInputStream(in) : in, file);
+	}
+
+	private void putObject() throws IOException {
 		File plainFile = new File(filename);
-		File encFile = null;
+		File uploadFile = null;
 		try {
 			if (aesKey != null) {
-				encFile = File.createTempFile("enc", ".tmp");
-				encodeFile(plainFile, encFile);
+				uploadFile = File.createTempFile("enc", ".tmp");
+				
+				encodeFile(plainFile, uploadFile);
 			}
 			else {
-				encFile = plainFile;
+				uploadFile = plainFile;
 			}
 			
 			ObjectMetadata metadata = new ObjectMetadata();
-			metadata.setContentLength(encFile.length());
+			metadata.setContentLength(uploadFile.length());
 			metadata.setContentType(contentType);
 			
-			InputStream input = new BufferedInputStream(new FileInputStream(encFile));
+			InputStream uploadFileIn = new BufferedInputStream(new FileInputStream(uploadFile));
 			try {
-				PutObjectRequest request = new PutObjectRequest(bucketName, key, input, metadata);
+				PutObjectRequest request = new PutObjectRequest(bucketName, key, uploadFileIn, metadata);
 				
 				if ("true".equals(keyPublic)) {
 					request.withCannedAcl(CannedAccessControlList.PublicRead);
 				}
 				
 				s3.putObject(request);
-				
-				syserr("uploaded " + plainFile + " to " + key);
 			}
 			finally {
-				input.close();
+				uploadFileIn.close();
 			}
 		}
 		finally {
-			if (encFile != plainFile) {
-				encFile.delete();
+			if (uploadFile != plainFile) {
+				uploadFile.delete();
 			}
 		}
+		
+		syserr("uploaded " + plainFile + " to " + key);
 	}
 
-	private void decode() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException,
-			FileNotFoundException, IOException {
-		File encFile = new File(filename);
+	private void decode() throws IOException {
+		File encodedFile = new File(filename);
 		File plainFile = new File(filename2);
 		
-		decodeFile(encFile, plainFile);
+		decodeFile(encodedFile, plainFile);
 		
-		syserr("decoded " + encFile + " to " + plainFile);
+		syserr("decoded " + encodedFile + " to " + plainFile);
 	}
 
-	private void encode() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException,
-			FileNotFoundException, IOException {
+	private void encode() throws IOException {
 		File plainFile = new File(filename);
-		File encFile = new File(filename2);
+		File encodedFile = new File(filename2);
 		
-		encodeFile(plainFile, encFile);
+		encodeFile(plainFile, encodedFile);
 		
-		syserr("encoded " + plainFile + " to " + encFile);
+		syserr("encoded " + plainFile + " to " + encodedFile);
 	}
 
 	private void genKey() {
 		sysout(Base64.encodeBase64String(AESKey.createKeyData()));
 	}
 
-	private void encodeFile(File plainFile, File encFile) throws InvalidKeyException, NoSuchAlgorithmException,
-			NoSuchPaddingException, FileNotFoundException, IOException {
-		InputStream in = aesKey.encodingInputStream(new BufferedInputStream(new FileInputStream(plainFile)));
+	private void encodeFile(File plainFile, File encodedFile) throws IOException {
+		copyInToFileClosing(aesKey.encodingInputStream(new BufferedInputStream(new FileInputStream(plainFile))), encodedFile);
+	}
+	
+	private void decodeFile(File encodedFile, File plainFile) throws IOException {
+		copyInToFileClosing(aesKey.decodingInputStream(new BufferedInputStream(new FileInputStream(encodedFile))), plainFile);
+	}
+
+	private void copyInToFileClosing(InputStream in, File file) throws IOException {
 		try {
-			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(encFile));
+			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file));
 			try {
 				copyInToOut(in, out);
 			}
@@ -251,23 +226,6 @@ public class S3ToolApp {
 		}
 	}
 	
-	private void decodeFile(File encFile, File plainFile) throws InvalidKeyException, NoSuchAlgorithmException,
-			NoSuchPaddingException, FileNotFoundException, IOException {
-		InputStream in = aesKey.decodingInputStream(new BufferedInputStream(new FileInputStream(encFile)));
-		try {
-			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(plainFile));
-			try {
-				copyInToOut(in, out);
-			}
-			finally {
-				out.close();
-			}
-		}
-		finally {
-			in.close();
-		}
-	}
-
 	private void copyInToOut(InputStream in, BufferedOutputStream out) throws IOException {
 		byte[] buf = new byte[4096];
 		for (int l = in.read(buf); l != -1; l = in.read(buf)) {
