@@ -139,15 +139,47 @@ public class S3ToolApp {
 		else if ("upSync".equals(command)) {
 			upSync();
 		}
+		else if ("downSync".equals(command)) {
+			downSync();
+		}
 	 	else throw new RuntimeException("unknown command: '"  + command + "'");
 	}
 
+	private void downSync() throws FileNotFoundException, IOException {
+		final Map<String,Long> lastModifiedByShortKey = listShortKeysWithLastModifiedMeta(bucketName, prefix);
+		
+		File directory = new File(directoryname);
+		for (Map.Entry<String, Long> lastModifiedShortKey : lastModifiedByShortKey.entrySet()) {
+			String key = prefix + lastModifiedShortKey.getKey();
+			File file = new File(directory, lastModifiedShortKey.getKey());
+			
+			if (file.exists()) {
+				if (file.lastModified() < lastModifiedShortKey.getValue()) {
+					getObject(key, file);
+					file.setLastModified(lastModifiedShortKey.getValue());
+					
+					syserr("downloaded newer " + key + " to " + file);
+				}
+				else {
+					syserr("ignored older " + key);
+				}
+			}
+			else {
+				getObject(key, file);
+				file.setLastModified(lastModifiedShortKey.getValue());
+				
+				syserr("downloaded new " + key + " to " + file);
+			}
+		}
+	}
+	
 	private void upSync() throws FileNotFoundException, IOException {
 		final Map<String,Long> lastModifiedByShortKey = listShortKeysWithLastModifiedMeta(bucketName, prefix);
 		
 		File directory = new File(directoryname);
-		final Pattern filenamePattern = Pattern.compile(filenamePatternString); 
 		for (File file : directory.listFiles(new FilenameFilter() {
+			private Pattern filenamePattern = Pattern.compile(filenamePatternString);
+			
 			@Override
 			public boolean accept(File dir, String name) {
 				return filenamePattern.matcher(name).matches();
@@ -171,7 +203,7 @@ public class S3ToolApp {
 			else {
 				putObject(file, key);
 				
-				syserr("uploaded initial " + file + " to " + key);
+				syserr("uploaded new " + file + " to " + key);
 			}
 		}
 	}
@@ -211,12 +243,17 @@ public class S3ToolApp {
 	}
 
 	private void getObject() throws IOException {
-		BufferedInputStream s3In = new BufferedInputStream(s3.getObject(new GetObjectRequest(bucketName, key)).getObjectContent());
+		String downloadKey = key;
 		File file = new File(filename);
-		
-		decodeIfRequiredAndCopyToFileClosing(s3In, file);
+		getObject(downloadKey, file);
 		
 		syserr("downloaded " + key + " to " + file);
+	}
+
+	private void getObject(String downloadKey, File file) throws IOException {
+		BufferedInputStream s3In = new BufferedInputStream(s3.getObject(new GetObjectRequest(bucketName, downloadKey)).getObjectContent());
+		
+		decodeIfRequiredAndCopyToFileClosing(s3In, file);
 	}
 
 	private void decodeIfRequiredAndCopyToFileClosing(InputStream in, File file) throws IOException {
