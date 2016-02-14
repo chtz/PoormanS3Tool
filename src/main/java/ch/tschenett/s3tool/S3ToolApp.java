@@ -31,30 +31,10 @@ public class S3ToolApp extends Command {
 	
 	@Override
 	public void execute() throws IOException {
-		if ("genKey".equals(command)) {
-			ctx.getBean(GenKeyCommand.class).execute();
+		Command command = (Command) ctx.getBean(this.command + COMMAND_BEAN_NAME_SUFFIX);
+		if (command != null) {
+			command.execute();
 		}
-		else if ("encode".equals(command)) {
-			ctx.getBean(EncodeCommand.class).execute();
-		}
-		else if ("decode".equals(command)) {
-			ctx.getBean(DecodeCommand.class).execute();
-		}
-		else if ("putObject".equals(command)) {
-			ctx.getBean(PutObjectCommand.class).execute();
-		}
-		else if ("getObject".equals(command)) {
-			ctx.getBean(GetObjectCommand.class).execute();
-		}
-		else if ("download".equals(command)) {
-			ctx.getBean(DownloadCommand.class).execute();
-		}
-		else if ("upSync".equals(command)) {
-			ctx.getBean(UpSyncCommand.class).execute();
-		}
-		else if ("downSync".equals(command)) {
-			ctx.getBean(DownSyncCommand.class).execute();
-		}
-	 	else throw new RuntimeException("unknown command: '"  + command + "'");
+	 	else throw new RuntimeException("unknown command: '"  + this.command + "'");
 	}
 }

@@ -10,7 +10,7 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-@Service
+@Service("downSync" + Command.COMMAND_BEAN_NAME_SUFFIX)
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class DownSyncCommand extends Command {
 	@Value(value="${directory}")
