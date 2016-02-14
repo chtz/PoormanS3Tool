@@ -94,3 +94,22 @@ Download all new jar files (with key prefix 'releaseX/') from S3 bucket to direc
 		--command=downSync \
 		--directory=relX \
 		--prefix=releaseX/
+
+Create a S3 (website hosting enabled) bucket (as AWS user with +/- AmazonS3FullAccess):
+
+	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
+		--command=createBucket \
+		--accessKey=XXX \
+		--secretKey=XXX \
+		--bucketName=xxx.swreleases \
+		--website=true
+		
+Create AWS user with read-only access to bucket (as AWS user with +/- IAMFullAccess):
+
+	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
+		--command=createUser \
+		--accessKey=XXX \
+		--secretKey=XXX \
+		--userName=xxx.swreleases.s3.ro \
+		--readOnly=true \
+		--bucketName=xxx.swreleases
