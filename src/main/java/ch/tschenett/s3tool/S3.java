@@ -20,7 +20,9 @@ import org.springframework.stereotype.Service;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.BucketWebsiteConfiguration;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -28,6 +30,7 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.SetBucketWebsiteConfigurationRequest;
 
 @Service
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
@@ -43,6 +46,18 @@ public class S3 {
 	@Value(value="${bucketName}")
 	private String bucketName;
 	
+	@Value(value="${region:eu-west-1}")
+	private String region;
+	
+	@Value(value="${website:false}")
+	private String website;
+	
+	@Value(value="${indexDocumentSuffix:index.html}")
+	private String indexDocumentSuffix;
+
+	@Value(value="${errorDocument:error.html}")
+	private String errorDocument;
+	
 	@Value(value="${endpoint:}")
 	private String endpoint;
 
@@ -50,7 +65,7 @@ public class S3 {
 	private Crypto crypto;
 	
 	private AmazonS3 s3;
-	
+
 	@PostConstruct
 	public void init() {
 		s3 = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey));
@@ -137,6 +152,16 @@ public class S3 {
 		}
 		finally {
 			in.close();
+		}
+	}
+
+	public void createBucket() {
+		s3.createBucket(new CreateBucketRequest(bucketName, region));
+
+		if ("true".equals(website)) {
+			BucketWebsiteConfiguration configuration = new BucketWebsiteConfiguration(indexDocumentSuffix, errorDocument);
+			
+			s3.setBucketWebsiteConfiguration(new SetBucketWebsiteConfigurationRequest(bucketName, configuration));
 		}
 	}
 }
