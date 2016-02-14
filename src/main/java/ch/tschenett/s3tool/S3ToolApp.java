@@ -31,10 +31,6 @@ public class S3ToolApp extends Command {
 	
 	@Override
 	public void execute() throws IOException {
-		Command command = (Command) ctx.getBean(this.command + COMMAND_BEAN_NAME_SUFFIX);
-		if (command != null) {
-			command.execute();
-		}
-	 	else throw new RuntimeException("unknown command: '"  + this.command + "'");
+		((Command) ctx.getBean(this.command + COMMAND_BEAN_NAME_SUFFIX)).execute();
 	}
 }
