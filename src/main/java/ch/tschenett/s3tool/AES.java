@@ -9,12 +9,12 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
-public class AESKey {
+public class AES {
     private static final String AES = "AES";
     
 	private final SecretKeySpec key;
     
-    public AESKey(byte[] keyData) {
+    public AES(byte[] keyData) {
     	try {
 			key = new SecretKeySpec(keyData, AES);
 		}
@@ -34,7 +34,7 @@ public class AESKey {
     
     public InputStream encodingInputStream(InputStream target) {
     	try {
-			return new CipherInputStream(encodingCipher(), target);
+			return new CipherInputStreamWrapper(encodingCipher(), target);
 		} catch (InvalidKeyException e) {
 			throw new RuntimeException("crypto: invalid key", e);
 		} catch (NoSuchAlgorithmException e) {
@@ -46,7 +46,7 @@ public class AESKey {
     
 	public InputStream decodingInputStream(InputStream target) {
 		try {
-			return new CipherInputStream(decodingCipher(), target);
+			return new CipherInputStreamWrapper(decodingCipher(), target);
 		} catch (InvalidKeyException e) {
 			throw new RuntimeException("crypto: invalid key", e);
 		} catch (NoSuchAlgorithmException e) {

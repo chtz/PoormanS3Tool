@@ -31,9 +31,9 @@ public class AESKeyTest {
 		byte[] plain = new byte[plainSize];
 		new Random().nextBytes(plain);
 		
-		byte[] keyData = AESKey.createKeyData();
+		byte[] keyData = AES.createKeyData();
 		
-		AESKey key2 = new AESKey(keyData);
+		AES key2 = new AES(keyData);
 		InputStream decodingIn = key2.decodingInputStream(key2.encodingInputStream(new ByteArrayInputStream(plain)));
 		ByteArrayOutputStream plainOut2 = new ByteArrayOutputStream();
 		byte[] buf = new byte[bufSize];

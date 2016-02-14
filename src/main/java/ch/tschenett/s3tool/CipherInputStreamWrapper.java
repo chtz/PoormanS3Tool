@@ -7,14 +7,14 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 
-public class CipherInputStream extends InputStream {
+public class CipherInputStreamWrapper extends InputStream {
 	private final Cipher cipher;
 	private final InputStream target;
 	private byte[] data;
 	private int dataOff;
 	private boolean closed;
 	
-	public CipherInputStream(Cipher cipher, InputStream target) {
+	public CipherInputStreamWrapper(Cipher cipher, InputStream target) {
 		this.cipher = cipher;
 		this.target = target;
 	}
