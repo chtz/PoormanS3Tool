@@ -17,6 +17,7 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -43,6 +44,9 @@ public class S3 {
 	@Value(value="${secretKey}")
 	private String secretKey;
 	
+	@Value(value="${s3ConfigSignerOverride:}")
+	private String s3ConfigSignerOverride;
+	
 	@Value(value="${bucketName}")
 	private String bucketName;
 	
@@ -68,7 +72,12 @@ public class S3 {
 
 	@PostConstruct
 	public void init() {
-		s3 = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey));
+		ClientConfiguration config = new ClientConfiguration();
+		if (!"".equals(s3ConfigSignerOverride)) {
+			config.setSignerOverride(s3ConfigSignerOverride); 
+		}
+		
+		s3 = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey), config);
 		
 		if (!"".equals(endpoint)) {
 			s3.setEndpoint(endpoint);
