@@ -13,22 +13,22 @@ public class S3ToolApp extends Command {
 	public static void main(String[] args) {
 		try {
 			SpringApplication.run(S3ToolApp.class, args).getBean(S3ToolApp.class).execute();
-			
+
 			System.exit(0);
 		}
 		catch (Exception e) {
 			syserr("error: " + e.getMessage());
-			
+
 			System.exit(1);
 		}
 	}
 
-	@Value(value="${command}")
+	@Value(value="${command:NO_COMMAND}")
 	private String command;
-	
+
 	@Autowired
 	private ApplicationContext ctx;
-	
+
 	@Override
 	public void execute() throws IOException {
 		((Command) ctx.getBean(this.command + COMMAND_BEAN_NAME_SUFFIX)).execute();
