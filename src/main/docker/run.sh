@@ -1,2 +1,2 @@
 #!/bin/bash
-sudo docker run -t chtz/s3tool
+docker run -t chtz/s3tool
