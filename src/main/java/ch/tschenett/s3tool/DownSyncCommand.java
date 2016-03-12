@@ -1,8 +1,12 @@
 package ch.tschenett.s3tool;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +26,12 @@ public class DownSyncCommand extends Command {
 	@Value(value="${aesKey:}")
 	private String aesKeyBase64;
 	
+	@Value(value="${filenamePattern:NO_PATTERN}")
+	private String filenamePatternString;
+	
+	@Value(value="${deleteLocal:false}")
+	private boolean deleteLocal;
+	
 	@Autowired
 	private S3 s3;
 	
@@ -29,6 +39,7 @@ public class DownSyncCommand extends Command {
 	public void execute() throws IOException {
 		final Map<String,Long> lastModifiedByShortKey = s3.listShortKeysWithLastModifiedMeta(prefix);
 		
+		Set<String> processedKeys = new HashSet<String>();
 		File directory = new File(directoryname);
 		for (Map.Entry<String, Long> lastModifiedShortKey : lastModifiedByShortKey.entrySet()) {
 			String key = prefix + lastModifiedShortKey.getKey();
@@ -50,6 +61,31 @@ public class DownSyncCommand extends Command {
 				file.setLastModified(lastModifiedShortKey.getValue());
 				
 				syserr("downloaded new " + key + " to " + file);
+			}
+			
+			processedKeys.add(key);
+		}
+		
+		for (File file : directory.listFiles(new FilenameFilter() {
+			private Pattern filenamePattern = Pattern.compile(filenamePatternString);
+			
+			@Override
+			public boolean accept(File dir, String name) {
+				return filenamePattern.matcher(name).matches();
+			}
+		})) {
+			String shortKey = file.getName();
+			String key = prefix + shortKey;
+			
+			if (!processedKeys.contains(key)) {
+				if (deleteLocal) {
+					file.delete();
+					
+					syserr("deleted " + file);	
+				}
+				else {
+					syserr("delete candidate " + file);
+				}
 			}
 		}
 	}

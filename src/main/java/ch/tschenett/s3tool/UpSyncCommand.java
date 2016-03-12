@@ -33,6 +33,9 @@ public class UpSyncCommand extends Command {
 	@Value(value="${aesKey:}")
 	private String aesKeyBase64;
 	
+	@Value(value="${deleteOnServer:false}")
+	private boolean deleteOnServer;
+	
 	@Autowired
 	private S3 s3;
 	
@@ -53,7 +56,7 @@ public class UpSyncCommand extends Command {
 			String key = prefix + shortKey;
 			
 			if (lastModifiedByShortKey.containsKey(shortKey)) {
-				long lastModifiedS3 = lastModifiedByShortKey.get(shortKey);
+				long lastModifiedS3 = lastModifiedByShortKey.remove(shortKey);
 				
 				if (file.lastModified() > lastModifiedS3) {
 					putObject(file, key);
@@ -70,6 +73,23 @@ public class UpSyncCommand extends Command {
 				syserr("uploaded new " + file + " to " + key);
 			}
 		}
+
+		for (String shortKey : lastModifiedByShortKey.keySet()) {
+			String key = prefix + shortKey;
+		
+			if (deleteOnServer) {
+				deleteObject(key);
+				
+				syserr("deleted " + key);
+			}
+			else {
+				syserr("delete candidate " + key);
+			}
+		}
+	}
+
+	private void deleteObject(String key) {
+		s3.deleteObject(key);
 	}
 
 	private void putObject(File file, String key) throws IOException {

@@ -173,4 +173,8 @@ public class S3 {
 			s3.setBucketWebsiteConfiguration(new SetBucketWebsiteConfigurationRequest(bucketName, configuration));
 		}
 	}
+
+	public void deleteObject(String key) {
+		s3.deleteObject(bucketName, key);
+	}
 }
