@@ -14,6 +14,32 @@ Generate AES key:
 
     export AES_KEY=$(java -jar target/s3tool-0.0.1-SNAPSHOT.jar --command=genKey)
 
+Upload all new jar files in directory 'relX' to S3 bucket (AES-encoded, keys prepended with 'releaseX/'). Also remove all jar files in S3 if they are no longer existing in directory 'relX':
+
+	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
+		--accessKey=XXX \
+		--secretKey=XXX \
+		--aesKey=$AES_KEY \
+		--bucketName=xxx.swreleases \
+		--command=upSync \
+		--directory=relX \
+		--filenamePattern='.*\.jar' \
+		--prefix=releaseX/ \
+		--deleteOnServer=true
+		
+Download (and AES-decode) all new jar files (with key prefix 'releaseX/') from S3 bucket to directory 'relX'. Also remove all jar files in directory 'relX' if they are no longer existing in S3:
+		
+	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
+		--accessKey=XXX \
+		--secretKey=XXX \
+		--aesKey=$AES_KEY \
+		--bucketName=xxx.swreleases \
+		--command=downSync \
+		--directory=relX \
+		--filenamePattern='.*\.jar' \
+		--prefix=releaseX/ \
+		--deleteLocal=true
+
 Encode file and upload (S3 putObject) to bucket:
 
     java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
@@ -58,7 +84,7 @@ Download (HTTP GET) unencrypted file from (website hosting enabled) S3 bucket:
 		--file='testdata/s3tool-0.0.1-SNAPSHOT.jar.pub' \
 		--command=download
 		
-Encode file (AES):		
+Helper: Encode file (AES):		
 		
 	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
 	    --file=testdata/s3tool-0.0.1-SNAPSHOT.jar \
@@ -66,7 +92,7 @@ Encode file (AES):
 	    --command=encode \
 	    --aesKey=$AES_KEY
 	
-Decode file (AES):
+Helper: Decode file (AES):
 	
 	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
 	    --file=testdata/s3tool-0.0.1-SNAPSHOT.jar.enc \
@@ -74,28 +100,7 @@ Decode file (AES):
 	    --command=decode \
 	    --aesKey=$AES_KEY
 
-Upload all new jar files in directory 'relX' to S3 bucket (prepend keys with 'releaseX/'):
-
-	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-		--accessKey=XXX \
-		--secretKey=XXX \
-		--bucketName=xxx.swreleases \
-		--command=upSync \
-		--directory=relX \
-		--filenamePattern='.*\.jar' \
-		--prefix=releaseX/
-		
-Download all new jar files (with key prefix 'releaseX/') from S3 bucket to directory 'relX':
-		
-	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-		--accessKey=XXX \
-		--secretKey=XXX \
-		--bucketName=xxx.swreleases \
-		--command=downSync \
-		--directory=relX \
-		--prefix=releaseX/
-
-Create a S3 (website hosting enabled) bucket (as AWS user with +/- AmazonS3FullAccess):
+Admin: Create a S3 (website hosting enabled) bucket (as AWS user with +/- AmazonS3FullAccess):
 
 	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
 		--command=createBucket \
@@ -104,7 +109,7 @@ Create a S3 (website hosting enabled) bucket (as AWS user with +/- AmazonS3FullA
 		--bucketName=xxx.swreleases \
 		--website=true
 		
-Create AWS user with read-only access to bucket (as AWS user with +/- IAMFullAccess):
+Admin: Create AWS user with read-only access to bucket (as AWS user with +/- IAMFullAccess):
 
 	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
 		--command=createUser \
