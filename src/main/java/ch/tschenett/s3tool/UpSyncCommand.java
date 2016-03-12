@@ -58,7 +58,7 @@ public class UpSyncCommand extends Command {
 			if (lastModifiedByShortKey.containsKey(shortKey)) {
 				long lastModifiedS3 = lastModifiedByShortKey.remove(shortKey);
 				
-				if (file.lastModified() > lastModifiedS3) {
+				if (((long)(file.lastModified() / 1000)) > ((long)(lastModifiedS3 / 1000))) {
 					putObject(file, key);
 					
 					syserr("uploaded newer " + file + " to " + key);

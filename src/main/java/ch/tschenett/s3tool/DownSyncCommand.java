@@ -46,7 +46,7 @@ public class DownSyncCommand extends Command {
 			File file = new File(directory, lastModifiedShortKey.getKey());
 			
 			if (file.exists()) {
-				if (file.lastModified() < lastModifiedShortKey.getValue()) {
+				if (((long)(file.lastModified()  / 1000)) < ((long)(lastModifiedShortKey.getValue() / 1000))) {
 					getObject(key, file);
 					file.setLastModified(lastModifiedShortKey.getValue());
 					

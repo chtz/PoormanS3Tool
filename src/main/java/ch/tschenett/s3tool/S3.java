@@ -133,6 +133,8 @@ public class S3 {
 		try {
 			crypto.encodeFile(aesKeyBase64, plainFile, uploadFile);
 			
+			uploadFile.setLastModified(plainFile.lastModified());
+			
 			putObject(key, contentType, cannedAclPublicRead, uploadFile);
 		}
 		finally {
