@@ -65,6 +65,12 @@ public class S3 {
 	@Value(value="${endpoint:}")
 	private String endpoint;
 
+	@Value(value="${proxyHost:}")
+	private String proxyHost;
+	
+	@Value(value="${proxyPort:-1}")
+	private int proxyPort;
+	
 	@Autowired
 	private Crypto crypto;
 	
@@ -75,6 +81,11 @@ public class S3 {
 		ClientConfiguration config = new ClientConfiguration();
 		if (!"".equals(s3ConfigSignerOverride)) {
 			config.setSignerOverride(s3ConfigSignerOverride); 
+		}
+		
+		if (proxyHost != null && !"".equals(proxyHost)) {
+			config.setProxyHost(proxyHost);
+			config.setProxyPort(proxyPort);
 		}
 		
 		s3 = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey), config);
