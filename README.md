@@ -1,6 +1,6 @@
 [ ![Codeship Status for chtz/PoormanS3Tool](https://codeship.com/projects/99154270-b4b1-0133-4775-3e023a4cadff/status?branch=master)](https://codeship.com/projects/133982)
 
-Download [s3tool-0.0.1-SNAPSHOT.jar](https://s3-eu-west-1.amazonaws.com/www.opensource.p.iraten.ch/s3tool-0.0.1-SNAPSHOT.jar) (built by Codeship) *FIXME NEW VERSION*
+Download [s3tool-0.0.2-SNAPSHOT.jar](https://s3-eu-west-1.amazonaws.com/www.opensource.p.iraten.ch/s3tool-0.0.2-SNAPSHOT.jar) (built by Codeship)
 
 BTW., USE AT YOUR OWN RISK!
 
