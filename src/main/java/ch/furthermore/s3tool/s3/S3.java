@@ -18,9 +18,10 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -66,7 +67,11 @@ public class S3 {
 			config.setProxyPort(proxyPort);
 		}
 		
-		s3 = new AmazonS3Client(new BasicAWSCredentials(accessKey, secretKey), config);
+		s3 = AmazonS3ClientBuilder
+			.standard()
+			.withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
+			.withClientConfiguration(config)
+			.build();
 		
 		if (!"".equals(endpoint)) {
 			s3.setEndpoint(endpoint);
