@@ -1,47 +1,51 @@
+# PoormanS3Tool
+
+A little helper to encode+upload and download+decode files to/from S3.
+
 [ ![Codeship Status for chtz/PoormanS3Tool](https://codeship.com/projects/99154270-b4b1-0133-4775-3e023a4cadff/status?branch=master)](https://codeship.com/projects/133982)
 
 Download [s3tool-0.0.2-SNAPSHOT.jar](https://s3-eu-west-1.amazonaws.com/www.opensource.p.iraten.ch/s3tool-0.0.2-SNAPSHOT.jar) (built by Codeship)
 
-BTW., USE AT YOUR OWN RISK!
+# Samples
 
-## create bucket
+## Create bucket
 
 ```
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=createBucket --accessKey=AKIXXX --secretKey=LmrXXX --bucketName=poormans3test20170225a --region=eu-west-1
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=createBucket --accessKey=AKI<S3FullAccessKey> --secretKey=Lmr<S3FullAccessKey> --bucketName=poormans3test20170225a --region=eu-west-1
 ```
 
 ```
 bucketName=poormans3test20170225a
 ```
 
-## create read/write user
+## Create read/write user
 
 ```
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=createUser --accessKey=AKIYYY --secretKey=v/rYYY --userName=poormans3test20170225a-rwuser --bucketName=poormans3test20170225a --readOnly=false
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=createUser --accessKey=AKI<IAMFullAccessKey> --secretKey=v/r<IAMFullAccessKey> --userName=poormans3test20170225a-rwuser --bucketName=poormans3test20170225a --readOnly=false
 ```
 
 ```
-accessKey=AKIZZZ
-secretKey=g6tZZZ
+accessKey=AKI<Generated>
+secretKey=g6t<Generated>
 ```
 
-## create AES key
+## Create AES key
 
 ```
 $ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=genKey
 ```
 
 ```
-aesKey=ePEZZZ
+aesKey=ePE<Generated>
 ```
 
-# sync local dir to s3 (create & delete files in s3)
+# Sync local dir to s3 (create & delete files in s3)
 
 ```
 $ mkdir testOut
 $ echo hallo > testOut/halli.txt
 $ echo hallo > testOut/hallo.txt
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=upSync --accessKey=AKIZZZ --secretKey=g6tZZZ --bucketName=poormans3test20170225a --directory=testOut --aesKey=ePEZZZ
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=upSync --accessKey=AKI<Generated> --secretKey=g6t<Generated> --bucketName=poormans3test20170225a --directory=testOut --aesKey=ePE<Generated>
 ```
 
 ```
@@ -52,7 +56,7 @@ uploaded new testOut/hallo.txt to hallo.txt
 ```
 $ echo hallo > testOut/hello.txt
 $ rm testOut/halli.txt 
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=upSync --accessKey=AKIZZZ --secretKey=g6tZZZ --bucketName=poormans3test20170225a --directory=testOut --aesKey=ePEZZZ
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=upSync --accessKey=AKI<Generated> --secretKey=g6t<Generated> --bucketName=poormans3test20170225a --directory=testOut --aesKey=ePE<Generated>
 ```
 
 ```
@@ -61,11 +65,11 @@ uploaded new testOut/hello.txt to hello.txt
 deleted halli.txt
 ```
 
-## sync s3 to local dir (create & delete local files)
+## Sync s3 to local dir (create & delete local files)
 
 ```
 $ mkdir testIn
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=downSync --accessKey=AKIZZZ --secretKey=g6tZZZ --bucketName=poormans3test20170225a --directory=testIn --aesKey=ePEZZZ
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=downSync --accessKey=AKI<Generated> --secretKey=g6t<Generated> --bucketName=poormans3test20170225a --directory=testIn --aesKey=ePE<Generated>
 ```
 
 ```
@@ -74,7 +78,7 @@ downloaded new hello.txt to testIn/hello.txt
 ```
 
 ```
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=downSync --accessKey=AKIZZZ --secretKey=g6tZZZ --bucketName=poormans3test20170225a --directory=testIn --aesKey=ePEZZZ
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=downSync --accessKey=AKI<Generated> --secretKey=g6t<Generated> --bucketName=poormans3test20170225a --directory=testIn --aesKey=ePE<Generated>
 ```
 
 ```
