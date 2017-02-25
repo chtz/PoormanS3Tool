@@ -49,8 +49,8 @@ $ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=upSync --accessKey=AKI<Ge
 ```
 
 ```
-uploaded new testOut/halli.txt to halli.txt
-uploaded new testOut/hallo.txt to hallo.txt
+uploaded new testOut/halli.txt to s3://poormans3test20170225a/halli.txt
+uploaded new testOut/hallo.txt to s3://poormans3test20170225a/hallo.txt
 ```
 
 ```
@@ -61,8 +61,8 @@ $ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=upSync --accessKey=AKI<Ge
 
 ```
 ignored older testOut/hallo.txt
-uploaded new testOut/hello.txt to hello.txt
-deleted halli.txt
+uploaded new testOut/hello.txt to s3://poormans3test20170225a/hello.txt
+deleted s3://poormans3test20170225a/halli.txt
 ```
 
 ## Sync s3 to local dir (create & delete local files)
@@ -73,8 +73,8 @@ $ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=downSync --accessKey=AKI<
 ```
 
 ```
-downloaded new hallo.txt to testIn/hallo.txt
-downloaded new hello.txt to testIn/hello.txt
+downloaded new s3://poormans3test20170225a/hallo.txt to testIn/hallo.txt
+downloaded new s3://poormans3test20170225a/hello.txt to testIn/hello.txt
 ```
 
 ```
@@ -82,6 +82,6 @@ $ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=downSync --accessKey=AKI<
 ```
 
 ```
-ignored older hallo.txt
-ignored older hello.txt
+ignored older s3://poormans3test20170225a/hallo.txt
+ignored older s3://poormans3test20170225a/hello.txt
 ```
