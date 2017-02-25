@@ -1,4 +1,4 @@
-package ch.tschenett.s3tool;
+package ch.furthermore.s3tool.s3;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -21,8 +21,6 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.BucketWebsiteConfiguration;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -31,7 +29,8 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.SetBucketWebsiteConfigurationRequest;
+
+import ch.furthermore.s3tool.crypto.Crypto;
 
 @Service
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
@@ -43,24 +42,6 @@ public class S3 {
 	
 	@Value(value="${secretKey}")
 	private String secretKey;
-	
-	@Value(value="${s3ConfigSignerOverride:}")
-	private String s3ConfigSignerOverride;
-	
-	@Value(value="${bucketName}")
-	private String bucketName;
-	
-	@Value(value="${region:eu-west-1}")
-	private String region;
-	
-	@Value(value="${website:false}")
-	private String website;
-	
-	@Value(value="${indexDocumentSuffix:index.html}")
-	private String indexDocumentSuffix;
-
-	@Value(value="${errorDocument:error.html}")
-	private String errorDocument;
 	
 	@Value(value="${endpoint:}")
 	private String endpoint;
@@ -79,11 +60,8 @@ public class S3 {
 	@PostConstruct
 	public void init() {
 		ClientConfiguration config = new ClientConfiguration();
-		if (!"".equals(s3ConfigSignerOverride)) {
-			config.setSignerOverride(s3ConfigSignerOverride); 
-		}
 		
-		if (proxyHost != null && !"".equals(proxyHost)) {
+		if (!"".equals(proxyHost)) {
 			config.setProxyHost(proxyHost);
 			config.setProxyPort(proxyPort);
 		}
@@ -95,20 +73,17 @@ public class S3 {
 		}
 	}
 	
-	public Map<String,Long> listShortKeysWithLastModifiedMeta(String prefix) {
-		Map<String,Long> lastModifiedByShortKey = new HashMap<String, Long>();
+	public Map<String,Long> listKeysWithLastModifiedMeta(String bucketName) {
+		Map<String,Long> lastModifiedByKey = new HashMap<String, Long>();
 		
-		ListObjectsRequest request = new ListObjectsRequest()
-				.withBucketName(bucketName)
-				.withPrefix(prefix);
+		ListObjectsRequest request = new ListObjectsRequest().withBucketName(bucketName);
 		ObjectListing listing = s3.listObjects(request);
 		for (;;) {
 			for (S3ObjectSummary  summary : listing.getObjectSummaries()) {
 				ObjectMetadata meta = s3.getObjectMetadata(new GetObjectMetadataRequest(summary.getBucketName(), summary.getKey()));
 				
 				if (meta.getUserMetadata().get(USER_META_LAST_MODIFIED) != null) {
-					lastModifiedByShortKey.put(summary.getKey().substring(prefix.length()), 
-							new Long(meta.getUserMetadata().get(USER_META_LAST_MODIFIED)));
+					lastModifiedByKey.put(summary.getKey(),  new Long(meta.getUserMetadata().get(USER_META_LAST_MODIFIED)));
 				}
 			}
 			
@@ -120,40 +95,34 @@ public class S3 {
 			}
 		}
 		
-		return lastModifiedByShortKey;
+		return lastModifiedByKey;
 	}
 
-	public void getObject(String downloadKey, File file) throws IOException {
-		InputStream s3In = getObject(downloadKey);
-		
-		crypto.copyToFileClosing(s3In, file);
-	}
-	
-	public void getObject(String aesKeyBase64, String downloadKey, File file) throws IOException {
-		InputStream s3In = getObject(downloadKey);
+	public void getObject(String bucketName, String aesKeyBase64, String downloadKey, File file) throws IOException {
+		InputStream s3In = getObject(bucketName, downloadKey);
 		
 		crypto.decodeToFileClosing(aesKeyBase64, s3In, file);
 	}
 	
-	public InputStream getObject(String key) throws IOException {
+	private InputStream getObject(String bucketName, String key) throws IOException {
 		return new BufferedInputStream(s3.getObject(new GetObjectRequest(bucketName, key)).getObjectContent());
 	}
 
-	public void putObject(String aesKeyBase64, String key, String contentType, boolean cannedAclPublicRead, File plainFile) throws IOException, FileNotFoundException {
+	public void putObject(String bucketName, String aesKeyBase64, String key, String contentType, File plainFile) throws IOException, FileNotFoundException {
 		File uploadFile = File.createTempFile("enc", ".tmp");
 		try {
 			crypto.encodeFile(aesKeyBase64, plainFile, uploadFile);
 			
 			uploadFile.setLastModified(plainFile.lastModified());
 			
-			putObject(key, contentType, cannedAclPublicRead, uploadFile);
+			putObject(bucketName, key, contentType, uploadFile);
 		}
 		finally {
 			uploadFile.delete();
 		}
 	}
 	
-	public void putObject(String key, String contentType, boolean cannedAclPublicRead, File file) throws IOException {
+	private void putObject(String bucketName, String key, String contentType, File file) throws IOException {
 		Map<String, String> userMetadata = new HashMap<String, String>();
 		userMetadata.put(USER_META_LAST_MODIFIED, Long.toString(file.lastModified()));
 		
@@ -166,10 +135,6 @@ public class S3 {
 		try {
 			PutObjectRequest request = new PutObjectRequest(bucketName, key, in, metadata);
 			
-			if (cannedAclPublicRead) {
-				request.withCannedAcl(CannedAccessControlList.PublicRead);
-			}
-			
 			s3.putObject(request);
 		}
 		finally {
@@ -177,17 +142,11 @@ public class S3 {
 		}
 	}
 
-	public void createBucket() {
+	public void createBucket(String bucketName, String region) {
 		s3.createBucket(new CreateBucketRequest(bucketName, region));
-
-		if ("true".equals(website)) {
-			BucketWebsiteConfiguration configuration = new BucketWebsiteConfiguration(indexDocumentSuffix, errorDocument);
-			
-			s3.setBucketWebsiteConfiguration(new SetBucketWebsiteConfigurationRequest(bucketName, configuration));
-		}
 	}
 
-	public void deleteObject(String key) {
+	public void deleteObject(String bucketName, String key) {
 		s3.deleteObject(bucketName, key);
 	}
 }

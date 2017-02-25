@@ -1,4 +1,4 @@
-package ch.tschenett.s3tool;
+package ch.furthermore.s3tool.commands;
 
 import java.io.IOException;
 
@@ -33,8 +33,8 @@ public class CreateUserCommand extends Command {
 	@Value(value="${bucketName}")
 	private String bucketName;
 	
-	@Value(value="${readOnly:true}")
-	private String readOnly;
+	@Value(value="${readOnly}")
+	private boolean readOnly;
 	
 	private AmazonIdentityManagement iam;
 

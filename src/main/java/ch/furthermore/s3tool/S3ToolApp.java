@@ -1,4 +1,4 @@
-package ch.tschenett.s3tool;
+package ch.furthermore.s3tool;
 
 import java.io.IOException;
 
@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
+
+import ch.furthermore.s3tool.commands.Command;
 
 @SpringBootApplication
 public class S3ToolApp extends Command {
@@ -23,7 +25,7 @@ public class S3ToolApp extends Command {
 		}
 	}
 
-	@Value(value="${command:NO_COMMAND}")
+	@Value(value="${command}")
 	private String command;
 
 	@Autowired

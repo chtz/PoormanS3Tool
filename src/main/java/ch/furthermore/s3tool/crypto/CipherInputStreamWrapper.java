@@ -1,4 +1,4 @@
-package ch.tschenett.s3tool;
+package ch.furthermore.s3tool.crypto;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -1,120 +1,83 @@
-# PoormanS3Tool
-
-A little helper to encode+upload/download+decode files to/from S3.
-
 [ ![Codeship Status for chtz/PoormanS3Tool](https://codeship.com/projects/99154270-b4b1-0133-4775-3e023a4cadff/status?branch=master)](https://codeship.com/projects/133982)
 
-Download [s3tool-0.0.1-SNAPSHOT.jar](https://s3-eu-west-1.amazonaws.com/www.opensource.p.iraten.ch/s3tool-0.0.1-SNAPSHOT.jar) (built by Codeship)
+Download [s3tool-0.0.1-SNAPSHOT.jar](https://s3-eu-west-1.amazonaws.com/www.opensource.p.iraten.ch/s3tool-0.0.1-SNAPSHOT.jar) (built by Codeship) *FIXME NEW VERSION*
 
 BTW., USE AT YOUR OWN RISK!
 
-# Samples
+## create bucket
 
-Generate AES key:
+```
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=createBucket --accessKey=AKIXXX --secretKey=LmrXXX --bucketName=poormans3test20170225a --region=eu-west-1
+```
 
-    export AES_KEY=$(java -jar target/s3tool-0.0.1-SNAPSHOT.jar --command=genKey)
+```
+bucketName=poormans3test20170225a
+```
 
-Upload all new jar files in directory 'relX' to S3 bucket (AES-encoded, keys prepended with 'releaseX/'). Also remove all jar files in S3 if they are no longer existing in directory 'relX':
+## create read/write user
 
-	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-		--accessKey=XXX \
-		--secretKey=XXX \
-		--aesKey=$AES_KEY \
-		--bucketName=xxx.swreleases \
-		--command=upSync \
-		--directory=relX \
-		--filenamePattern='.*\.jar' \
-		--prefix=releaseX/ \
-		--deleteOnServer=true
-		
-Download (and AES-decode) all new jar files (with key prefix 'releaseX/') from S3 bucket to directory 'relX'. Also remove all jar files in directory 'relX' if they are no longer existing in S3:
-		
-	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-		--accessKey=XXX \
-		--secretKey=XXX \
-		--aesKey=$AES_KEY \
-		--bucketName=xxx.swreleases \
-		--command=downSync \
-		--directory=relX \
-		--filenamePattern='.*\.jar' \
-		--prefix=releaseX/ \
-		--deleteLocal=true
+```
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=createUser --accessKey=AKIYYY --secretKey=v/rYYY --userName=poormans3test20170225a-rwuser --bucketName=poormans3test20170225a --readOnly=false
+```
 
-Encode file and upload (S3 putObject) to bucket:
+```
+accessKey=AKIZZZ
+secretKey=g6tZZZ
+```
 
-    java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-    	--accessKey=XXX \
-    	--secretKey=XXX \
-    	--bucketName=xxx.swreleases \
-    	--key=s3tool-0.0.1-SNAPSHOT.jar \
-    	--file=target/s3tool-0.0.1-SNAPSHOT.jar \
-    	--contentType=application/octet-stream \
-    	--command=putObject \
-    	--aesKey=$AES_KEY
-		
-Download (S3 getObject) file from bucket and decode (use HTTP endpoint to make certain corporate firewalls happy):		
-		
-	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-	    --accessKey=XXX \
-	    --secretKey=XXX \
-	    --bucketName=xxx.swreleases \
-	    --endpoint='http://s3-eu-west-1.amazonaws.com' \
-	    --key=s3tool-0.0.1-SNAPSHOT.jar \
-	    --file=testdata/s3tool-0.0.1-SNAPSHOT.jar \
-	    --contentType=application/octet-stream \
-	    --command=getObject \
-	    --aesKey=$AES_KEY
-	
-Upload (S3 putObject) unencrypted file to (website hosting enabled) S3 bucket: 	
-	
-	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-		--accessKey=XXX \
-		--secretKey=XXX \
-		--bucketName=www.swreleases.foo \
-		--key=s3tool-0.0.1-SNAPSHOT.jar \
-		--keyPublic=true \
-		--file=target/s3tool-0.0.1-SNAPSHOT.jar \
-		--contentType=application/octet-stream \
-		--command=putObject
-		
-Download (HTTP GET) unencrypted file from (website hosting enabled) S3 bucket:	
-		
-	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-		--url='http://www.swreleases.foo/s3tool-0.0.1-SNAPSHOT.jar' \
-		--file='testdata/s3tool-0.0.1-SNAPSHOT.jar.pub' \
-		--command=download
-		
-Helper: Encode file (AES):		
-		
-	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-	    --file=testdata/s3tool-0.0.1-SNAPSHOT.jar \
-	    --file2=testdata/s3tool-0.0.1-SNAPSHOT.jar.enc \
-	    --command=encode \
-	    --aesKey=$AES_KEY
-	
-Helper: Decode file (AES):
-	
-	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-	    --file=testdata/s3tool-0.0.1-SNAPSHOT.jar.enc \
-	    --file2=testdata/s3tool-0.0.1-SNAPSHOT.jar.dec \
-	    --command=decode \
-	    --aesKey=$AES_KEY
+## create AES key
 
-Admin: Create a S3 (website hosting enabled) bucket (as AWS user with +/- AmazonS3FullAccess):
+```
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=genKey
+```
 
-	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-		--command=createBucket \
-		--accessKey=XXX \
-		--secretKey=XXX \
-		--bucketName=xxx.swreleases \
-		--website=true
-		
-Admin: Create AWS user with read-only access to bucket (as AWS user with +/- IAMFullAccess):
+```
+aesKey=ePEZZZ
+```
 
-	java -jar target/s3tool-0.0.1-SNAPSHOT.jar \
-		--command=createUser \
-		--accessKey=XXX \
-		--secretKey=XXX \
-		--userName=xxx.swreleases.s3.ro \
-		--readOnly=true \
-		--bucketName=xxx.swreleases
+# sync local dir to s3 (create & delete files in s3)
+
+```
+$ mkdir testOut
+$ echo hallo > testOut/halli.txt
+$ echo hallo > testOut/hallo.txt
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=upSync --accessKey=AKIZZZ --secretKey=g6tZZZ --bucketName=poormans3test20170225a --directory=testOut --aesKey=ePEZZZ
+```
+
+```
+uploaded new testOut/halli.txt to halli.txt
+uploaded new testOut/hallo.txt to hallo.txt
+```
+
+```
+$ echo hallo > testOut/hello.txt
+$ rm testOut/halli.txt 
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=upSync --accessKey=AKIZZZ --secretKey=g6tZZZ --bucketName=poormans3test20170225a --directory=testOut --aesKey=ePEZZZ
+```
+
+```
+ignored older testOut/hallo.txt
+uploaded new testOut/hello.txt to hello.txt
+deleted halli.txt
+```
+
+## sync s3 to local dir (create & delete local files)
+
+```
+$ mkdir testIn
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=downSync --accessKey=AKIZZZ --secretKey=g6tZZZ --bucketName=poormans3test20170225a --directory=testIn --aesKey=ePEZZZ
+```
+
+```
+downloaded new hallo.txt to testIn/hallo.txt
+downloaded new hello.txt to testIn/hello.txt
+```
+
+```
+$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=downSync --accessKey=AKIZZZ --secretKey=g6tZZZ --bucketName=poormans3test20170225a --directory=testIn --aesKey=ePEZZZ
+```
+
+```
+ignored older hallo.txt
+ignored older hello.txt
+```

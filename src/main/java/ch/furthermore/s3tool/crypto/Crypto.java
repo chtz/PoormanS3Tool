@@ -1,4 +1,4 @@
-package ch.tschenett.s3tool;
+package ch.furthermore.s3tool.crypto;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -22,10 +22,6 @@ public class Crypto {
 		return new AES(Base64.decodeBase64(aesKeyBase64));
 	}
 	
-	public void decodeFile(String aesKeyBase64, File encodedFile, File plainFile) throws IOException {
-		decodeToFileClosing(aesKeyBase64, new BufferedInputStream(new FileInputStream(encodedFile)), plainFile);
-	}
-	
 	public void decodeToFileClosing(String aesKeyBase64, InputStream in, File file) throws IOException {
 		copyToFileClosing(aesKey(aesKeyBase64).decodingInputStream(in), file);
 	}
@@ -34,11 +30,11 @@ public class Crypto {
 		encodeToFileClosing(aesKeyBase64, new BufferedInputStream(new FileInputStream(plainFile)), encodedFile);
 	}
 	
-	public void encodeToFileClosing(String aesKeyBase64, InputStream in, File encodedFile) throws IOException {
+	private void encodeToFileClosing(String aesKeyBase64, InputStream in, File encodedFile) throws IOException {
 		copyToFileClosing(aesKey(aesKeyBase64).encodingInputStream(in), encodedFile);
 	}
 
-	public void copyToFileClosing(InputStream in, File file) throws IOException {
+	private void copyToFileClosing(InputStream in, File file) throws IOException {
 		try {
 			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file));
 			try {
@@ -53,7 +49,7 @@ public class Crypto {
 		}
 	}
 	
-	public void copyToOutputStream(InputStream in, OutputStream out) throws IOException {
+	private void copyToOutputStream(InputStream in, OutputStream out) throws IOException {
 		final byte[] buf = new byte[4096];
 		for (int l = in.read(buf); l != -1; l = in.read(buf)) {
 			out.write(buf, 0, l);

@@ -1,4 +1,4 @@
-package ch.tschenett.s3tool;
+package ch.furthermore.s3tool.crypto;
 
 import static org.junit.Assert.assertArrayEquals;
 
@@ -13,6 +13,8 @@ import java.util.Random;
 import javax.crypto.NoSuchPaddingException;
 
 import org.junit.Test;
+
+import ch.furthermore.s3tool.crypto.AES;
 
 public class AESKeyTest {
 	@Test
