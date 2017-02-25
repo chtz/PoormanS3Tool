@@ -45,7 +45,7 @@ public class UpSyncCommand extends Command {
 				if (((long)(file.lastModified() / 1000)) > ((long)(lastModifiedS3 / 1000))) {
 					putObject(file, key);
 					
-					syserr("uploaded newer " + file + " to " + key);
+					syserr("uploaded newer " + file + " to s3://" + bucketName + "/" + key);
 				}
 				else {
 					syserr("ignored older " + file);
@@ -54,14 +54,14 @@ public class UpSyncCommand extends Command {
 			else {
 				putObject(file, key);
 				
-				syserr("uploaded new " + file + " to " + key);
+				syserr("uploaded new " + file + " to s3://" + bucketName + "/" + key);
 			}
 		}
 
 		for (String key : lastModifiedByKey.keySet()) {
 			deleteObject(key);
 			
-			syserr("deleted " + key);
+			syserr("deleted s3://" + bucketName + "/" + key);
 		}
 	}
 

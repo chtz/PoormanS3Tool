@@ -44,17 +44,17 @@ public class DownSyncCommand extends Command {
 					getObject(key, file);
 					file.setLastModified(lastModifiedKey.getValue());
 					
-					syserr("downloaded newer " + key + " to " + file);
+					syserr("downloaded newer s3://" + bucketName + "/" + key + " to " + file);
 				}
 				else {
-					syserr("ignored older " + key);
+					syserr("ignored older s3://" + bucketName + "/" + key);
 				}
 			}
 			else {
 				getObject(key, file);
 				file.setLastModified(lastModifiedKey.getValue());
 				
-				syserr("downloaded new " + key + " to " + file);
+				syserr("downloaded new s3://" + bucketName + "/" + key + " to " + file);
 			}
 			
 			processedKeys.add(key);
