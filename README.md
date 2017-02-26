@@ -6,7 +6,7 @@ A little helper to encode+upload and download+decode files to/from S3.
 
 Download [s3tool-0.0.2-SNAPSHOT.jar](https://s3-eu-west-1.amazonaws.com/www.opensource.p.iraten.ch/s3tool-0.0.2-SNAPSHOT.jar) (built by Codeship)
 
-# Samples
+# Samples (currently slightly OUT OF DATE)
 
 ## Create bucket
 

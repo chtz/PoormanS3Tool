@@ -8,6 +8,7 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import ch.furthermore.s3tool.iam.IAM;
 import ch.furthermore.s3tool.s3.S3;
 
 @Service("createBucket" + Command.COMMAND_BEAN_NAME_SUFFIX)
@@ -15,6 +16,9 @@ import ch.furthermore.s3tool.s3.S3;
 public class CreateBucketCommand extends Command {
 	@Autowired
 	private S3 s3;
+	
+	@Autowired
+	private IAM iam;
 	
 	@Value(value="${bucketName}")
 	private String bucketName;
@@ -25,6 +29,9 @@ public class CreateBucketCommand extends Command {
 	@Override
 	public void execute() throws IOException {
 		s3.createBucket(bucketName, region);
+		
+		iam.createROGroup(bucketName);
+		iam.createRWGroup(bucketName);
 		
 		sysout("bucketName=" + bucketName);
 	}
