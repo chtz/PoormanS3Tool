@@ -15,14 +15,21 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
 import com.amazonaws.services.identitymanagement.model.AccessKey;
+import com.amazonaws.services.identitymanagement.model.AccessKeyMetadata;
 import com.amazonaws.services.identitymanagement.model.AddUserToGroupRequest;
 import com.amazonaws.services.identitymanagement.model.CreateAccessKeyRequest;
 import com.amazonaws.services.identitymanagement.model.CreateGroupRequest;
 import com.amazonaws.services.identitymanagement.model.CreateGroupResult;
 import com.amazonaws.services.identitymanagement.model.CreateUserRequest;
+import com.amazonaws.services.identitymanagement.model.DeleteAccessKeyRequest;
+import com.amazonaws.services.identitymanagement.model.DeleteUserRequest;
+import com.amazonaws.services.identitymanagement.model.Group;
+import com.amazonaws.services.identitymanagement.model.ListAccessKeysRequest;
+import com.amazonaws.services.identitymanagement.model.ListGroupsForUserRequest;
 import com.amazonaws.services.identitymanagement.model.ListUsersRequest;
 import com.amazonaws.services.identitymanagement.model.ListUsersResult;
 import com.amazonaws.services.identitymanagement.model.PutGroupPolicyRequest;
+import com.amazonaws.services.identitymanagement.model.RemoveUserFromGroupRequest;
 import com.amazonaws.services.identitymanagement.model.User;
 
 @Service
@@ -138,5 +145,18 @@ public class IAM {
 		}
 		
 		return users;
+	}
+
+	public void deleteUser(String userName) {
+		for (Group group : iam.listGroupsForUser(new ListGroupsForUserRequest(userName)).getGroups()) {
+			iam.removeUserFromGroup(new RemoveUserFromGroupRequest(group.getGroupName(), userName));
+		}
+		
+		for (AccessKeyMetadata a : iam.listAccessKeys(new ListAccessKeysRequest().withUserName(userName)).getAccessKeyMetadata()) {
+			iam.deleteAccessKey(new DeleteAccessKeyRequest(userName, a.getAccessKeyId()));
+		}
+		
+		
+		iam.deleteUser(new DeleteUserRequest(userName)); 
 	}
 }
