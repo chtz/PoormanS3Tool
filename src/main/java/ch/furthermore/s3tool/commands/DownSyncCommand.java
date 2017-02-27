@@ -23,8 +23,11 @@ public class DownSyncCommand extends Command {
 	@Value(value="${directory}")
 	private String directoryname;
 	
-	@Value(value="${aesKey}")
+	@Value(value="${aesKey:}")
 	private String aesKeyBase64;
+	
+	@Value(value="${privateKey:}")
+	private String privateKeyBase64;
 	
 	@Autowired
 	private S3 s3;
@@ -74,6 +77,6 @@ public class DownSyncCommand extends Command {
 	}
 
 	private void getObject(String key, File file) throws IOException {
-		s3.getObject(bucketName, aesKeyBase64, key, file);
+		s3.getObject(bucketName, aesKeyBase64, privateKeyBase64, key, file);
 	}
 }

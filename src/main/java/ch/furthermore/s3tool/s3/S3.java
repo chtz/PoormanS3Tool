@@ -37,6 +37,7 @@ import ch.furthermore.s3tool.crypto.Crypto;
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class S3 {
 	private static final String USER_META_LAST_MODIFIED = "lastmodified";
+	private static final String USER_META_ENCODED_KEY = "encodedkey";
 
 	@Value(value="${accessKey}")
 	private String accessKey;
@@ -103,7 +104,17 @@ public class S3 {
 		return lastModifiedByKey;
 	}
 
-	public void getObject(String bucketName, String aesKeyBase64, String downloadKey, File file) throws IOException {
+	public void getObject(String bucketName, String aesKeyBase64, String privateKeyBase64, String downloadKey, File file) throws IOException {
+		if ("".equals(aesKeyBase64) && !"".equals(privateKeyBase64)) {
+			ObjectMetadata meta = s3.getObjectMetadata(new GetObjectMetadataRequest(bucketName, downloadKey));
+			
+			if (meta.getUserMetadata().get(USER_META_ENCODED_KEY) != null) {
+				String encodedAesKeyBase64 = meta.getUserMetadata().get(USER_META_ENCODED_KEY);
+				
+				aesKeyBase64 = crypto.decodeKey(privateKeyBase64, encodedAesKeyBase64);
+			}
+		}
+		
 		InputStream s3In = getObject(bucketName, downloadKey);
 		
 		crypto.decodeToFileClosing(aesKeyBase64, s3In, file);
@@ -113,30 +124,40 @@ public class S3 {
 		return new BufferedInputStream(s3.getObject(new GetObjectRequest(bucketName, key)).getObjectContent());
 	}
 
-	public void putObject(String bucketName, String aesKeyBase64, String key, String contentType, File plainFile) throws IOException, FileNotFoundException {
+	public void putObject(String bucketName, String aesKeyBase64, String publicKeyBase64, String key, String contentType, File plainFile) throws IOException, FileNotFoundException {
+		if ("".equals(aesKeyBase64)) {
+			aesKeyBase64 = crypto.genKey();
+		}
+		
 		File uploadFile = File.createTempFile("enc", ".tmp");
 		try {
 			crypto.encodeFile(aesKeyBase64, plainFile, uploadFile);
 			
 			uploadFile.setLastModified(plainFile.lastModified());
 			
-			putObject(bucketName, key, contentType, uploadFile);
+			putObjectInt(bucketName, aesKeyBase64, publicKeyBase64, key, contentType, uploadFile);
 		}
 		finally {
 			uploadFile.delete();
 		}
 	}
 	
-	private void putObject(String bucketName, String key, String contentType, File file) throws IOException {
+	private void putObjectInt(String bucketName, String aesKeyBase64, String publicKeyBase64, String key, String contentType, File encodedFile) throws IOException {
 		Map<String, String> userMetadata = new HashMap<String, String>();
-		userMetadata.put(USER_META_LAST_MODIFIED, Long.toString(file.lastModified()));
+		userMetadata.put(USER_META_LAST_MODIFIED, Long.toString(encodedFile.lastModified()));
+		
+		if (!"".equals(publicKeyBase64)) {
+			String encodedAesKeyBase64 = crypto.encodeKey(publicKeyBase64, aesKeyBase64);
+			
+			userMetadata.put(USER_META_ENCODED_KEY, encodedAesKeyBase64);
+		}
 		
 		ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setUserMetadata(userMetadata);
-		metadata.setContentLength(file.length());
+		metadata.setContentLength(encodedFile.length());
 		metadata.setContentType(contentType);
 			
-		InputStream in = new BufferedInputStream(new FileInputStream(file));
+		InputStream in = new BufferedInputStream(new FileInputStream(encodedFile));
 		try {
 			PutObjectRequest request = new PutObjectRequest(bucketName, key, in, metadata);
 			

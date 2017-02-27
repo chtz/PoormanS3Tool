@@ -14,6 +14,24 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class Crypto {
+	public KeyPair genKeyPair() {
+		RSA rsa = new RSA(RSA.RSA_KEY_SIZE);
+		
+		return new KeyPair(Base64.encodeBase64String(rsa.getPublicKey()), Base64.encodeBase64String(rsa.getPrivateKey()));
+	}
+	
+	public String encodeKey(String publicKeyBase64, String aesKeyBase64) {
+		RSA rsa = new RSA(null, Base64.decodeBase64(publicKeyBase64));
+		byte[] encoded = rsa.encrypt(Base64.decodeBase64(aesKeyBase64));
+		return Base64.encodeBase64String(encoded);
+	}
+	
+	public String decodeKey(String privateKeyBase64, String encodedAesKeyBase64) {
+		RSA rsa = new RSA(Base64.decodeBase64(privateKeyBase64), null);
+		byte[] decoded = rsa.decrypt(Base64.decodeBase64(encodedAesKeyBase64));
+		return Base64.encodeBase64String(decoded);
+	}
+	
 	public String genKey() {
 		return Base64.encodeBase64String(AES.createKeyData());
 	}
@@ -53,6 +71,24 @@ public class Crypto {
 		final byte[] buf = new byte[4096];
 		for (int l = in.read(buf); l != -1; l = in.read(buf)) {
 			out.write(buf, 0, l);
+		}
+	}
+	
+	public static class KeyPair {
+		private final String publicKey;
+		private final String privateKey;
+		
+		public KeyPair(String publicKey, String privateKey) {
+			this.publicKey = publicKey;
+			this.privateKey = privateKey;
+		}
+		
+		public String getPublicKey() {
+			return publicKey;
+		}
+		
+		public String getPrivateKey() {
+			return privateKey;
 		}
 	}
 }

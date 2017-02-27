@@ -23,8 +23,11 @@ public class UpSyncCommand extends Command {
 	@Value(value="${directory}")
 	private String directoryname;
 	
-	@Value(value="${aesKey}")
+	@Value(value="${aesKey:}")
 	private String aesKeyBase64;
+	
+	@Value(value="${publicKey:}")
+	private String publicKeyBase64;
 	
 	@Autowired
 	private S3 s3;
@@ -70,6 +73,6 @@ public class UpSyncCommand extends Command {
 	}
 
 	private void putObject(File file, String key) throws IOException {
-		s3.putObject(bucketName, aesKeyBase64, key, CONTENT_TYPE, file);
+		s3.putObject(bucketName, aesKeyBase64, publicKeyBase64, key, CONTENT_TYPE, file);
 	}
 }
