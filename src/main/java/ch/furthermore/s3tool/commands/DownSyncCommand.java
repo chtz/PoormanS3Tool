@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import ch.furthermore.s3tool.s3.S3;
+import ch.furthermore.s3tool.s3.S3.GetObjectOutcome;
 
 @Service("downSync" + Command.COMMAND_BEAN_NAME_SUFFIX)
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
@@ -26,8 +27,11 @@ public class DownSyncCommand extends Command {
 	@Value(value="${aesKey:}")
 	private String aesKeyBase64;
 	
-	@Value(value="${privateKey:}")
-	private String privateKeyBase64;
+	@Value(value="${decryptPrivateKey:}")
+	private String decryptPrivateKeyBase64;
+	
+	@Value(value="${verifyPublicKey:}")
+	private String verifyPublicKeyBase64;
 	
 	@Autowired
 	private S3 s3;
@@ -44,20 +48,37 @@ public class DownSyncCommand extends Command {
 			
 			if (file.exists()) {
 				if (((long)(file.lastModified()  / 1000)) < ((long)(lastModifiedKey.getValue() / 1000))) {
-					getObject(key, file);
-					file.setLastModified(lastModifiedKey.getValue());
-					
-					syserr("downloaded newer s3://" + bucketName + "/" + key + " to " + file);
+					switch (getObject(key, file)) {
+					case KEY_DECODING_FAILED:
+						file.delete();
+						syserr("NOT downloaded newer s3://" + bucketName + "/" + key + " (key decode failed). Removed " + file);
+						break;
+					case SIGNATURE_VERIFICATION_FAILED:
+						syserr("downloaded newer s3://" + bucketName + "/" + key + ", but signature verification failed. Removed " + file);
+						break;
+					case SUCCESS:
+						file.setLastModified(lastModifiedKey.getValue());
+						syserr("downloaded newer s3://" + bucketName + "/" + key + " to " + file);
+						break;
+					}
 				}
 				else {
 					syserr("ignored older s3://" + bucketName + "/" + key);
 				}
 			}
 			else {
-				getObject(key, file);
-				file.setLastModified(lastModifiedKey.getValue());
-				
-				syserr("downloaded new s3://" + bucketName + "/" + key + " to " + file);
+				switch (getObject(key, file)) {
+				case KEY_DECODING_FAILED:
+					syserr("NOT downloaded new s3://" + bucketName + "/" + key + " (key decode failed)");
+					break;
+				case SIGNATURE_VERIFICATION_FAILED:
+					syserr("downloaded new s3://" + bucketName + "/" + key + ", but signature verification failed. Removed " + file);
+					break;
+				case SUCCESS:
+					file.setLastModified(lastModifiedKey.getValue());
+					syserr("downloaded new s3://" + bucketName + "/" + key + " to " + file);
+					break;
+				}
 			}
 			
 			processedKeys.add(key);
@@ -76,7 +97,7 @@ public class DownSyncCommand extends Command {
 		}
 	}
 
-	private void getObject(String key, File file) throws IOException {
-		s3.getObject(bucketName, aesKeyBase64, privateKeyBase64, key, file);
+	private GetObjectOutcome getObject(String key, File file) throws IOException {
+		return s3.getObject(bucketName, aesKeyBase64, decryptPrivateKeyBase64, verifyPublicKeyBase64, key, file);
 	}
 }

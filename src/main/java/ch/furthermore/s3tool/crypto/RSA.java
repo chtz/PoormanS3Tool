@@ -1,5 +1,7 @@
 package ch.furthermore.s3tool.crypto;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -31,10 +33,6 @@ public class RSA {
 	
 	private transient PrivateKey privateKey = null;
 	private transient PublicKey publicKey = null;
-	
-	public RSA() {
-		this(null, null);
-	}
 	
 	public RSA(byte[] privateKey, byte[] publicKey) {
 		this.privateKeyData = privateKey;
@@ -85,26 +83,24 @@ public class RSA {
 		return publicKey = keyFactory().generatePublic(publicKeySpec);
 	}
 	
-	public Signed signed(byte[] data) {
-		Signed signed = new Signed();
-		signed.setData(data);
-		signed.setSignature(sign(data));
-		return signed;
-	}
-	
-	public byte[] sign(byte[] data) {
+	public byte[] sign(InputStream in) {
 		try {
-			return sign(SHA512WITH_RSA, data);
+			return sign(SHA512WITH_RSA, in);
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 	
-	private byte[] sign(String signatureAlgorithm, byte[] data) throws NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException, SignatureException {
+	private byte[] sign(String signatureAlgorithm, InputStream in) throws NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException, SignatureException, IOException {
 		Signature signatureGenerator = signature(signatureAlgorithm);
 		signatureGenerator.initSign(privateKey());
-		signatureGenerator.update(data);
+		
+		byte[] buf = new byte[4096];
+		for (int l = in.read(buf); l > 0; l = in.read(buf)) {
+			signatureGenerator.update(buf, 0, l);
+		}
+		
 		return signatureGenerator.sign();
 	}
 
@@ -112,23 +108,24 @@ public class RSA {
 		return Signature.getInstance(signatureAlgorithm);
 	}
 	
-	public boolean verify(Signed signed) {
-		return verify(signed.getSignature(), signed.getData());
-	}
-	
-	public boolean verify(byte[] signature, byte[] data) {
+	public boolean verify(byte[] signature, InputStream in) {
 		try {
-			return verify(SHA512WITH_RSA, signature, data);
+			return verify(SHA512WITH_RSA, signature, in);
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 	
-	private boolean verify(String signatureAlgorithm, byte[] signature, byte[] data) throws NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException, SignatureException {
+	private boolean verify(String signatureAlgorithm, byte[] signature, InputStream in) throws NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException, SignatureException, IOException {
 		Signature signatureVerifier = signature(signatureAlgorithm);
 		signatureVerifier.initVerify(publicKey());
-		signatureVerifier.update(data);
+		
+		byte[] buf = new byte[4096];
+		for (int l = in.read(buf); l > 0; l = in.read(buf)) {
+			signatureVerifier.update(buf, 0, l);
+		}
+		
 		return signatureVerifier.verify(signature);
 	}
 	
@@ -180,26 +177,5 @@ public class RSA {
 
 	public byte[] getPublicKey() {
 		return publicKeyData;
-	}
-	
-	public static class Signed {
-		private byte[] data;
-		private byte[] signature;
-
-		public byte[] getData() {
-			return data;
-		}
-
-		public void setData(byte[] data) {
-			this.data = data;
-		}
-
-		public byte[] getSignature() {
-			return signature;
-		}
-
-		public void setSignature(byte[] signature) {
-			this.signature = signature;
-		}
 	}
 }

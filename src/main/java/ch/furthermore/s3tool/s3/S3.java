@@ -38,6 +38,7 @@ import ch.furthermore.s3tool.crypto.Crypto;
 public class S3 {
 	private static final String USER_META_LAST_MODIFIED = "lastmodified";
 	private static final String USER_META_ENCODED_KEY = "encodedkey";
+	private static final String USER_META_SIGNATURE = "signature";
 
 	@Value(value="${accessKey}")
 	private String accessKey;
@@ -104,29 +105,55 @@ public class S3 {
 		return lastModifiedByKey;
 	}
 
-	public void getObject(String bucketName, String aesKeyBase64, String privateKeyBase64, String downloadKey, File file) throws IOException {
-		if ("".equals(aesKeyBase64) && !"".equals(privateKeyBase64)) {
-			ObjectMetadata meta = s3.getObjectMetadata(new GetObjectMetadataRequest(bucketName, downloadKey));
-			
+	public enum GetObjectOutcome {
+		SUCCESS,
+		KEY_DECODING_FAILED,
+		SIGNATURE_VERIFICATION_FAILED
+	}
+	
+	public GetObjectOutcome getObject(String bucketName, String aesKeyBase64, String decryptPrivateKeyBase64, String verifyPublicKeyBase64, String downloadKey, File file) throws IOException {
+		ObjectMetadata meta = s3.getObjectMetadata(new GetObjectMetadataRequest(bucketName, downloadKey));
+		
+		if ("".equals(aesKeyBase64) && !"".equals(decryptPrivateKeyBase64)) {
 			if (meta.getUserMetadata().get(USER_META_ENCODED_KEY) != null) {
 				String encodedAesKeyBase64 = meta.getUserMetadata().get(USER_META_ENCODED_KEY);
-				
-				aesKeyBase64 = crypto.decodeKey(privateKeyBase64, encodedAesKeyBase64);
+
+				try {
+					aesKeyBase64 = crypto.decodeKey(decryptPrivateKeyBase64, encodedAesKeyBase64);
+				}
+				catch (Exception e) {
+					return GetObjectOutcome.KEY_DECODING_FAILED;
+				}
 			}
 		}
 		
 		InputStream s3In = getObject(bucketName, downloadKey);
 		
 		crypto.decodeToFileClosing(aesKeyBase64, s3In, file);
+		
+		if (!"".equals(verifyPublicKeyBase64) && meta.getUserMetadata().get(USER_META_SIGNATURE) != null) {
+			if (!crypto.verify(verifyPublicKeyBase64, meta.getUserMetadata().get(USER_META_SIGNATURE), file)) {
+				file.delete();
+				
+				return GetObjectOutcome.SIGNATURE_VERIFICATION_FAILED;
+			}
+		}
+		
+		return GetObjectOutcome.SUCCESS;
 	}
 	
 	private InputStream getObject(String bucketName, String key) throws IOException {
 		return new BufferedInputStream(s3.getObject(new GetObjectRequest(bucketName, key)).getObjectContent());
 	}
 
-	public void putObject(String bucketName, String aesKeyBase64, String publicKeyBase64, String key, String contentType, File plainFile) throws IOException, FileNotFoundException {
+	public void putObject(String bucketName, String aesKeyBase64, String encryptPublicKeyBase64, String signPrivateKeyBase64, String key, String contentType, File plainFile) throws IOException, FileNotFoundException {
 		if ("".equals(aesKeyBase64)) {
 			aesKeyBase64 = crypto.genKey();
+		}
+		
+		String signature = null;
+		if (!"".equals(signPrivateKeyBase64)) {
+			signature = crypto.sign(signPrivateKeyBase64, plainFile);
 		}
 		
 		File uploadFile = File.createTempFile("enc", ".tmp");
@@ -135,21 +162,25 @@ public class S3 {
 			
 			uploadFile.setLastModified(plainFile.lastModified());
 			
-			putObjectInt(bucketName, aesKeyBase64, publicKeyBase64, key, contentType, uploadFile);
+			putObjectInt(bucketName, aesKeyBase64, encryptPublicKeyBase64, signature, key, contentType, uploadFile);
 		}
 		finally {
 			uploadFile.delete();
 		}
 	}
 	
-	private void putObjectInt(String bucketName, String aesKeyBase64, String publicKeyBase64, String key, String contentType, File encodedFile) throws IOException {
+	private void putObjectInt(String bucketName, String aesKeyBase64, String encryptPublicKeyBase64, String signature, String key, String contentType, File encodedFile) throws IOException {
 		Map<String, String> userMetadata = new HashMap<String, String>();
 		userMetadata.put(USER_META_LAST_MODIFIED, Long.toString(encodedFile.lastModified()));
 		
-		if (!"".equals(publicKeyBase64)) {
-			String encodedAesKeyBase64 = crypto.encodeKey(publicKeyBase64, aesKeyBase64);
+		if (!"".equals(encryptPublicKeyBase64)) {
+			String encodedAesKeyBase64 = crypto.encodeKey(encryptPublicKeyBase64, aesKeyBase64);
 			
 			userMetadata.put(USER_META_ENCODED_KEY, encodedAesKeyBase64);
+		}
+		
+		if (signature != null) {
+			userMetadata.put(USER_META_SIGNATURE, signature);
 		}
 		
 		ObjectMetadata metadata = new ObjectMetadata();

@@ -32,6 +32,30 @@ public class Crypto {
 		return Base64.encodeBase64String(decoded);
 	}
 	
+	public String sign(String privateKeyBase64, File file) throws IOException {
+		RSA rsa = new RSA(Base64.decodeBase64(privateKeyBase64), null);
+		BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
+		try {
+			byte[] signature = rsa.sign(in);
+			return Base64.encodeBase64String(signature);
+		}
+		finally {
+			in.close();
+		}
+	}
+	
+	public boolean verify(String publicKeyBase64, String signatureBase64, File file) throws IOException {
+		RSA rsa = new RSA(null, Base64.decodeBase64(publicKeyBase64));
+		byte[] signature = Base64.decodeBase64(signatureBase64);
+		BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
+		try {
+			return rsa.verify(signature, in);
+		}
+		finally {
+			in.close();
+		}
+	}
+	
 	public String genKey() {
 		return Base64.encodeBase64String(AES.createKeyData());
 	}

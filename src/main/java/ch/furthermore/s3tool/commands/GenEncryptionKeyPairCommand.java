@@ -10,9 +10,9 @@ import org.springframework.stereotype.Service;
 import ch.furthermore.s3tool.crypto.Crypto;
 import ch.furthermore.s3tool.crypto.Crypto.KeyPair;
 
-@Service("genKeyPair" + Command.COMMAND_BEAN_NAME_SUFFIX)
+@Service("genEncryptionKeyPair" + Command.COMMAND_BEAN_NAME_SUFFIX)
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class GenKeyPairCommand extends Command {
+public class GenEncryptionKeyPairCommand extends Command {
 	@Autowired
 	private Crypto crypto;
 	
@@ -20,7 +20,7 @@ public class GenKeyPairCommand extends Command {
 	public void execute() throws IOException {
 		KeyPair keyPair = crypto.genKeyPair();
 		
-		sysout("privateKey=" + keyPair.getPrivateKey());
-		sysout("publicKey=" + keyPair.getPublicKey());
+		sysout("decryptPrivateKey=" + keyPair.getPrivateKey());
+		sysout("encryptPublicKey=" + keyPair.getPublicKey());
 	}
 }
