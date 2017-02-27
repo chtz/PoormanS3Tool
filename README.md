@@ -6,82 +6,60 @@ A little helper to encode+upload and download+decode files to/from S3.
 
 Download [s3tool-0.0.2-SNAPSHOT.jar](https://s3-eu-west-1.amazonaws.com/www.opensource.p.iraten.ch/s3tool-0.0.2-SNAPSHOT.jar) (built by Codeship)
 
-# Samples (currently slightly OUT OF DATE)
+# Samples
 
-## Create bucket
-
-```
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=createBucket --accessKey=AKI<S3FullAccessKey> --secretKey=Lmr<S3FullAccessKey> --bucketName=poormans3test20170225a --region=eu-west-1
-```
+## Pre-conditions
 
 ```
-bucketName=poormans3test20170225a
+export IAM_S3_ADMIN_ACCESS_KEY=...
+export IAM_S3_ADMIN_SECRET_KEY=... 
 ```
 
-## Create read/write user
+## Create bucket, RO/RW users (S3 access keys) and key pairs
 
 ```
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=createUser --accessKey=AKI<IAMFullAccessKey> --secretKey=v/r<IAMFullAccessKey> --userName=poormans3test20170225a-rwuser --bucketName=poormans3test20170225a --readOnly=false
+java -jar s3tool-0.0.2-SNAPSHOT.jar --command=createBucket --accessKey=$IAM_S3_ADMIN_ACCESS_KEY --secretKey=$IAM_S3_ADMIN_SECRET_KEY --region=eu-west-1 --bucketName=cascloud2017 > bucket.properties
+java -jar s3tool-0.0.2-SNAPSHOT.jar --command=createUser --accessKey=$IAM_S3_ADMIN_ACCESS_KEY --secretKey=$IAM_S3_ADMIN_SECRET_KEY --userName=cascloud2017-rw --bucketName=cascloud2017 --readOnly=false > writer.properties
+java -jar s3tool-0.0.2-SNAPSHOT.jar --command=createUser --accessKey=$IAM_S3_ADMIN_ACCESS_KEY --secretKey=$IAM_S3_ADMIN_SECRET_KEY --userName=cascloud2017-ro --bucketName=cascloud2017 --readOnly=true > reader.properties
+java -jar s3tool-0.0.2-SNAPSHOT.jar --command=genEncryptionKeyPair > encryption-pair.properties
+java -jar s3tool-0.0.2-SNAPSHOT.jar --command=genSigningKeyPair > signing-pair.properties
 ```
 
-```
-accessKey=AKI<Generated>
-secretKey=g6t<Generated>
-```
-
-## Create AES key
+# Create configuration file and script for uploader role/user 
 
 ```
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=genKey
+cp bucket.properties application-uploader.properties
+cat writer.properties >> application-uploader.properties
+cat encryption-pair.properties | grep encryptPublicKey >> application-uploader.properties
+cat signing-pair.properties | grep signPrivateKey >> application-uploader.properties
+echo command=upSync >> application-uploader.properties
+echo directory=casOut >> application-uploader.properties
+
+echo java -jar s3tool-0.0.2-SNAPSHOT.jar --spring.profiles.active=uploader > upload.sh
+chmod +x upload.sh
 ```
 
-```
-aesKey=ePE<Generated>
-```
-
-# Sync local dir to s3 (create & delete files in s3)
+# Create configuration file and script for downloader role/user
 
 ```
-$ mkdir testOut
-$ echo hallo > testOut/halli.txt
-$ echo hallo > testOut/hallo.txt
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=upSync --accessKey=AKI<Generated> --secretKey=g6t<Generated> --bucketName=poormans3test20170225a --directory=testOut --aesKey=ePE<Generated>
+cp bucket.properties application-downloader.properties
+cat reader.properties >> application-downloader.properties
+cat encryption-pair.properties | grep decryptPrivateKey >> application-downloader.properties
+cat signing-pair.properties | grep verifyPublicKey >> application-downloader.properties
+echo command=downSync >> application-downloader.properties
+echo directory=casIn >> application-downloader.properties
+
+echo java -jar s3tool-0.0.2-SNAPSHOT.jar --spring.profiles.active=downloader > download.sh
+chmod +x download.sh
 ```
 
-```
-uploaded new testOut/halli.txt to s3://poormans3test20170225a/halli.txt
-uploaded new testOut/hallo.txt to s3://poormans3test20170225a/hallo.txt
-```
+# Test upload and download
 
 ```
-$ echo hallo > testOut/hello.txt
-$ rm testOut/halli.txt 
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=upSync --accessKey=AKI<Generated> --secretKey=g6t<Generated> --bucketName=poormans3test20170225a --directory=testOut --aesKey=ePE<Generated>
-```
+mkdir -p casOut
+echo test > casOut/test.txt
+./upload.sh 
 
-```
-ignored older testOut/hallo.txt
-uploaded new testOut/hello.txt to s3://poormans3test20170225a/hello.txt
-deleted s3://poormans3test20170225a/halli.txt
-```
-
-## Sync s3 to local dir (create & delete local files)
-
-```
-$ mkdir testIn
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=downSync --accessKey=AKI<Generated> --secretKey=g6t<Generated> --bucketName=poormans3test20170225a --directory=testIn --aesKey=ePE<Generated>
-```
-
-```
-downloaded new s3://poormans3test20170225a/hallo.txt to testIn/hallo.txt
-downloaded new s3://poormans3test20170225a/hello.txt to testIn/hello.txt
-```
-
-```
-$ java -jar target/s3tool-0.0.2-SNAPSHOT.jar --command=downSync --accessKey=AKI<Generated> --secretKey=g6t<Generated> --bucketName=poormans3test20170225a --directory=testIn --aesKey=ePE<Generated>
-```
-
-```
-ignored older s3://poormans3test20170225a/hallo.txt
-ignored older s3://poormans3test20170225a/hello.txt
+mkdir -p casIn
+./download.sh
 ```
