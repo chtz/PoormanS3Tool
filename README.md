@@ -1,6 +1,6 @@
 # PoormanS3Tool
 
-A little helper to encode+upload and download+decode files to/from S3.
+A little helper to sign+encode+upload and download+decode+verify files to/from S3 (RSA, AES).
 
 [ ![Codeship Status for chtz/PoormanS3Tool](https://codeship.com/projects/99154270-b4b1-0133-4775-3e023a4cadff/status?branch=master)](https://codeship.com/projects/133982)
 
