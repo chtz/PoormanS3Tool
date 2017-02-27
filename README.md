@@ -59,7 +59,17 @@ chmod +x download.sh
 mkdir -p casOut
 echo test > casOut/test.txt
 ./upload.sh 
+```
 
+```
+uploaded new casOut/test.txt to s3://cascloud2017/test.txt
+```
+
+```
 mkdir -p casIn
 ./download.sh
+```
+
+```
+downloaded new s3://cascloud2017/test.txt to casIn/test.txt
 ```
