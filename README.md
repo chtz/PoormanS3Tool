@@ -56,7 +56,7 @@ java -jar s3tool-0.0.2-SNAPSHOT.jar --spring.profiles.active=downloader
 
 ## Admin tasks
 
-### 1) Create bucket, encryption key pair and signing key pair
+### 1) Create S3 bucket (and read-only IAM group and read/write IAM group), encryption RSA key pair and signing RSA key pair
 
 ```
 export IAM_S3_ADMIN_ACCESS_KEY=...
@@ -66,7 +66,7 @@ cd samplebucket
 ../scripts/create_bucket.sh samplebucket
 ```
 
-### 2) Create up sync (read/write-) user, configuration file and script
+### 2) Create up sync read/write IAM user, configuration file and script
 
 ```
 export IAM_S3_ADMIN_ACCESS_KEY=...
@@ -75,7 +75,7 @@ cd samplebucket
 ../scripts/create_uploader_config.sh samplebucket samplebucket-uploader
 ```
 
-### 3) Create down sync (read only-) user, configuration file and script
+### 3) Create down sync read-only IAM user, configuration file and script
 
 ```
 export IAM_S3_ADMIN_ACCESS_KEY=...
