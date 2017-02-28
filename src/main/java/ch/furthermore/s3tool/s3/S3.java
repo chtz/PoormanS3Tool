@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
@@ -72,16 +73,19 @@ public class S3 {
 			config.setProxyPort(proxyPort);
 		}
 		
-		s3 = AmazonS3ClientBuilder
+		AmazonS3ClientBuilder builder = AmazonS3ClientBuilder
 			.standard()
-			.withRegion(region)
 			.withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
-			.withClientConfiguration(config)
-			.build();
+			.withClientConfiguration(config);
 		
 		if (!"".equals(endpoint)) {
-			s3.setEndpoint(endpoint);
+			builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, region));
 		}
+		else {
+			builder.withRegion(region);
+		}
+		
+		s3 = builder.build();
 	}
 	
 	public Map<String,Long> listKeysWithLastModifiedMeta(String bucketName) {
