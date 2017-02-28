@@ -6,7 +6,7 @@ Download [s3tool-0.0.2-SNAPSHOT.jar](https://s3-eu-west-1.amazonaws.com/www.open
 
 ## End-to-End Scenario
 
-Company A -> Released Software Artifacts -(up sync: sign & encrypt)-> s3://bucket/ -(down sync: decrypt & verify)-> Company B
+Company A -> Files -(up sync: sign & encrypt)-> s3://bucket/ -(down sync: decrypt & verify)-> Company B
 
 After up sync: s3://bucket is identical with local directory (files added, files replaced, files removed in S3)
 
