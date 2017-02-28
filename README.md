@@ -4,6 +4,10 @@
 
 Download [s3tool-0.0.2-SNAPSHOT.jar](https://s3-eu-west-1.amazonaws.com/www.opensource.p.iraten.ch/s3tool-0.0.2-SNAPSHOT.jar) (built by Codeship)
 
+## End-to-End Scenario
+
+Company A -> Released Software Artifacts -(sign & encrypt)-> s3://bucket/ -(decrypt & verify)-> Company B
+
 ## Up Sync
 
 Local Directory/* -(for each file)-> -(if new or newer)-> -(sign)-> -(encrypt)-> s3://bucket/*
