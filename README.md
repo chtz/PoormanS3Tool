@@ -21,13 +21,13 @@ cat application-uploader.properties
 ```
 
 ```
-bucketName=cascloud2017
+bucketName=samplebucket
 accessKey=AKIAJ6...
 secretKey=69xEKxamT...
 encryptPublicKey=MIICIjAN...
 signPrivateKey=MIIJQwIBAD...
 command=upSync
-directory=casOut
+directory=out
 ```
 
 ```
@@ -41,13 +41,13 @@ cat application-downloader.properties
 ```
 
 ``` 
-bucketName=cascloud2017
+bucketName=samplebucket
 accessKey=AKIAJZ...
 secretKey=DKPJ3e32x...
 decryptPrivateKey=MIIJQwIBA...
 verifyPublicKey=MIICIjANBgkq...
 command=downSync
-directory=casIn
+directory=in
 ```
 
 ```
@@ -56,40 +56,30 @@ java -jar s3tool-0.0.2-SNAPSHOT.jar --spring.profiles.active=downloader
 
 ## Admin tasks
 
-### 1) Create bucket, read-only user, read-write user, encryption key pair and signing key pair
+### 1) Create bucket, encryption key pair and signing key pair
 
 ```
 export IAM_S3_ADMIN_ACCESS_KEY=...
-export IAM_S3_ADMIN_SECRET_KEY=... 
-java -jar s3tool-0.0.2-SNAPSHOT.jar --command=createBucket --accessKey=$IAM_S3_ADMIN_ACCESS_KEY --secretKey=$IAM_S3_ADMIN_SECRET_KEY --region=eu-west-1 --bucketName=cascloud2017 > bucket.properties
-java -jar s3tool-0.0.2-SNAPSHOT.jar --command=createUser --accessKey=$IAM_S3_ADMIN_ACCESS_KEY --secretKey=$IAM_S3_ADMIN_SECRET_KEY --userName=cascloud2017-rw --bucketName=cascloud2017 --readOnly=false > writer.properties
-java -jar s3tool-0.0.2-SNAPSHOT.jar --command=createUser --accessKey=$IAM_S3_ADMIN_ACCESS_KEY --secretKey=$IAM_S3_ADMIN_SECRET_KEY --userName=cascloud2017-ro --bucketName=cascloud2017 --readOnly=true > reader.properties
-java -jar s3tool-0.0.2-SNAPSHOT.jar --command=genEncryptionKeyPair > encryption-pair.properties
-java -jar s3tool-0.0.2-SNAPSHOT.jar --command=genSigningKeyPair > signing-pair.properties
+export IAM_S3_ADMIN_SECRET_KEY=...
+mkdir -p samplebucket
+cd samplebucket
+../scripts/create_bucket.sh samplebucket
 ```
 
-### 2) Create up sync configuration file and script
+### 2) Create up sync (read/write-) user, configuration file and script
 
 ```
-cp bucket.properties application-uploader.properties
-cat writer.properties >> application-uploader.properties
-cat encryption-pair.properties | grep encryptPublicKey >> application-uploader.properties
-cat signing-pair.properties | grep signPrivateKey >> application-uploader.properties
-echo command=upSync >> application-uploader.properties
-echo directory=casOut >> application-uploader.properties
-echo java -jar s3tool-0.0.2-SNAPSHOT.jar --spring.profiles.active=uploader > upload.sh
-chmod +x upload.sh
+export IAM_S3_ADMIN_ACCESS_KEY=...
+export IAM_S3_ADMIN_SECRET_KEY=...
+cd samplebucket
+../scripts/create_uploader_config.sh samplebucket samplebucket-uploader
 ```
 
-### 3) Create down sync configuration file and script
+### 3) Create down sync (read only-) user, configuration file and script
 
 ```
-cp bucket.properties application-downloader.properties
-cat reader.properties >> application-downloader.properties
-cat encryption-pair.properties | grep decryptPrivateKey >> application-downloader.properties
-cat signing-pair.properties | grep verifyPublicKey >> application-downloader.properties
-echo command=downSync >> application-downloader.properties
-echo directory=casIn >> application-downloader.properties
-echo java -jar s3tool-0.0.2-SNAPSHOT.jar --spring.profiles.active=downloader > download.sh
-chmod +x download.sh
+export IAM_S3_ADMIN_ACCESS_KEY=...
+export IAM_S3_ADMIN_SECRET_KEY=...
+cd samplebucket
+../scripts/create_downloader_config.sh samplebucket samplebucket-downloader
 ```
