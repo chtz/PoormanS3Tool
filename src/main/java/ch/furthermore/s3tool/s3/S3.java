@@ -40,6 +40,9 @@ public class S3 {
 	private static final String USER_META_ENCODED_KEY = "encodedkey";
 	private static final String USER_META_SIGNATURE = "signature";
 
+	@Value(value="${region:eu-west-1}")
+	private String region;
+	
 	@Value(value="${accessKey}")
 	private String accessKey;
 	
@@ -71,6 +74,7 @@ public class S3 {
 		
 		s3 = AmazonS3ClientBuilder
 			.standard()
+			.withRegion(region)
 			.withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
 			.withClientConfiguration(config)
 			.build();
@@ -199,7 +203,7 @@ public class S3 {
 		}
 	}
 
-	public void createBucket(String bucketName, String region) {
+	public void createBucket(String bucketName) {
 		s3.createBucket(new CreateBucketRequest(bucketName, region));
 	}
 

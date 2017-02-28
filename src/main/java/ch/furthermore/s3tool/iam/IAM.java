@@ -35,6 +35,9 @@ import com.amazonaws.services.identitymanagement.model.User;
 @Service
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class IAM {
+	@Value(value="${region:eu-west-1}")
+	private String region;
+	
 	@Value(value="${accessKey}")
 	private String accessKey;
 	
@@ -47,6 +50,7 @@ public class IAM {
 	public void init() {
 		iam = AmazonIdentityManagementClientBuilder
 				.standard()
+				.withRegion(region)
 				.withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
 				.build();
 	}

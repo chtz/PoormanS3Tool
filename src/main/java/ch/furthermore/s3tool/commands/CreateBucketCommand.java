@@ -23,12 +23,9 @@ public class CreateBucketCommand extends Command {
 	@Value(value="${bucketName}")
 	private String bucketName;
 	
-	@Value(value="${region}")
-	private String region;
-	
 	@Override
 	public void execute() throws IOException {
-		s3.createBucket(bucketName, region);
+		s3.createBucket(bucketName);
 		
 		iam.createROGroup(bucketName);
 		iam.createRWGroup(bucketName);
