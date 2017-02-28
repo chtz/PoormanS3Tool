@@ -6,19 +6,15 @@ Download [s3tool-0.0.2-SNAPSHOT.jar](https://s3-eu-west-1.amazonaws.com/www.open
 
 ## End-to-End Scenario
 
-Company A -> Released Software Artifacts -(sign & encrypt)-> s3://bucket/ -(decrypt & verify)-> Company B
+Company A -> Released Software Artifacts -(up sync: sign & encrypt)-> s3://bucket/ -(down sync: decrypt & verify)-> Company B
 
-## Up Sync
+After up sync: s3://bucket is identical with local directory (files added, files replaced, files removed in S3)
 
-Local Directory/* -(for each file)-> -(if new or newer)-> -(sign)-> -(encrypt)-> s3://bucket/*
-
-## Down Sync
-
-s3://bucket/* -(for each file)-> -(if new or newer)-> -(decrypt)-> -(verify)-> Local Directory/
+After down sync: local directory is identical with s3://bucket (files added, files replaced, files removed in local directory)
 
 # Samples
 
-## Up Sync - Upload new(er) files in a local directory to S3
+## Up Sync
 
 ```
 cat application-uploader.properties 
@@ -38,7 +34,7 @@ directory=casOut
 java -jar s3tool-0.0.2-SNAPSHOT.jar --spring.profiles.active=uploader
 ```
 
-## Down Sync - Download new(er) files from S3 to a local directory
+## Down Sync
 
 ```
 cat application-downloader.properties
@@ -72,7 +68,7 @@ java -jar s3tool-0.0.2-SNAPSHOT.jar --command=genEncryptionKeyPair > encryption-
 java -jar s3tool-0.0.2-SNAPSHOT.jar --command=genSigningKeyPair > signing-pair.properties
 ```
 
-### 2) Create configuration file and script for "up sync" role 
+### 2) Create up sync configuration file and script
 
 ```
 cp bucket.properties application-uploader.properties
@@ -85,7 +81,7 @@ echo java -jar s3tool-0.0.2-SNAPSHOT.jar --spring.profiles.active=uploader > upl
 chmod +x upload.sh
 ```
 
-### 3) Create configuration file and script for "down sync" role
+### 3) Create down sync configuration file and script
 
 ```
 cp bucket.properties application-downloader.properties
