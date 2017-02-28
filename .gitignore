@@ -2,7 +2,6 @@
 .project
 .settings
 testdata
-scripts
 target
 testdata2
 testdataIn
