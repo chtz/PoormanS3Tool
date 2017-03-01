@@ -24,6 +24,8 @@ import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CreateBucketRequest;
+import com.amazonaws.services.s3.model.DeleteBucketRequest;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
@@ -213,5 +215,24 @@ public class S3 {
 
 	public void deleteObject(String bucketName, String key) {
 		s3.deleteObject(bucketName, key);
+	}
+
+	public void deleteBucket(String bucketName) {
+		ListObjectsRequest request = new ListObjectsRequest().withBucketName(bucketName);
+		ObjectListing listing = s3.listObjects(request);
+		for (;;) {
+			for (S3ObjectSummary  summary : listing.getObjectSummaries()) {
+				s3.deleteObject(new DeleteObjectRequest(bucketName, summary.getKey()));
+			}
+			
+			if (listing.isTruncated()) {
+				listing = s3.listNextBatchOfObjects(listing);
+			}
+			else {
+				break;
+			}
+		}
+		
+		s3.deleteBucket(new DeleteBucketRequest(bucketName));
 	}
 }

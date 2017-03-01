@@ -22,9 +22,13 @@ import com.amazonaws.services.identitymanagement.model.CreateGroupRequest;
 import com.amazonaws.services.identitymanagement.model.CreateGroupResult;
 import com.amazonaws.services.identitymanagement.model.CreateUserRequest;
 import com.amazonaws.services.identitymanagement.model.DeleteAccessKeyRequest;
+import com.amazonaws.services.identitymanagement.model.DeleteGroupPolicyRequest;
+import com.amazonaws.services.identitymanagement.model.DeleteGroupRequest;
 import com.amazonaws.services.identitymanagement.model.DeleteUserRequest;
+import com.amazonaws.services.identitymanagement.model.GetGroupRequest;
 import com.amazonaws.services.identitymanagement.model.Group;
 import com.amazonaws.services.identitymanagement.model.ListAccessKeysRequest;
+import com.amazonaws.services.identitymanagement.model.ListGroupPoliciesRequest;
 import com.amazonaws.services.identitymanagement.model.ListGroupsForUserRequest;
 import com.amazonaws.services.identitymanagement.model.ListUsersRequest;
 import com.amazonaws.services.identitymanagement.model.ListUsersResult;
@@ -109,6 +113,28 @@ public class IAM {
 		
 		iam.putGroupPolicy(new PutGroupPolicyRequest(result.getGroup().getGroupName(), bucketName + "-" + readWriteInfix(readOnly) + "-policy", policy));
 	}
+	
+	public void deleteROGroup(String bucketName) {
+		deleteGroup(bucketName, true);
+	}
+
+	public void deleteRWGroup(String bucketName) {
+		deleteGroup(bucketName, false);
+	}
+	
+	public void deleteGroup(String bucketName, boolean readOnly) {
+		String groupName = groupName(bucketName, readOnly);
+		
+		for (String policyName : iam.listGroupPolicies(new ListGroupPoliciesRequest(groupName)).getPolicyNames()) {
+			iam.deleteGroupPolicy(new DeleteGroupPolicyRequest(groupName, policyName));
+		}
+		
+		for (User user : iam.getGroup(new GetGroupRequest(groupName)).getUsers()) {
+			iam.removeUserFromGroup(new RemoveUserFromGroupRequest(groupName, user.getUserName()));
+		}
+		
+		iam.deleteGroup(new DeleteGroupRequest(groupName));
+	}
 
 	private String pathName(String bucketName) {
 		return "/" + bucketName + "/";
@@ -160,7 +186,12 @@ public class IAM {
 			iam.deleteAccessKey(new DeleteAccessKeyRequest(userName, a.getAccessKeyId()));
 		}
 		
-		
 		iam.deleteUser(new DeleteUserRequest(userName)); 
+	}
+
+	public void deleteUsers(String bucketName) {
+		for (String userName : listUsers(bucketName)) {
+			deleteUser(userName);
+		}
 	}
 }
