@@ -83,3 +83,12 @@ export IAM_S3_ADMIN_SECRET_KEY=...
 cd samplebucket
 ../scripts/create_downloader_config.sh samplebucket samplebucket-downloader
 ```
+
+### n) Delete bucket (and all data), IAM (read/write and read-only) groups and all (read/wite and read-only) IAM users
+
+```
+export IAM_S3_ADMIN_ACCESS_KEY=...
+export IAM_S3_ADMIN_SECRET_KEY=...
+cd samplebucket
+../scripts/delete_bucket.sh samplebucket
+```
