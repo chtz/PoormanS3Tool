@@ -13,17 +13,18 @@ public class LocalDirectory {
 		this.baseDir = baseDir;
 		
 		this.cacheDir = new File(baseDir, ".lastsync");
-		this.cacheDir.mkdir();
 	}
 	
 	public List<FileVersion> versions() {
 		List<FileVersion> result = new LinkedList<FileVersion>();
 		
-		for (File v : cacheDir.listFiles()) {
-			File f = new File(baseDir, v.getName());
-			
-			if (!f.exists()) {
-				result.add(new FileVersion(v, true, true));
+		if (cacheDir.exists()) {
+			for (File v : cacheDir.listFiles()) {
+				File f = new File(baseDir, v.getName());
+				
+				if (!f.exists()) {
+					result.add(new FileVersion(v, true, true));
+				}
 			}
 		}
 		
@@ -37,6 +38,8 @@ public class LocalDirectory {
 	}
 	
 	public void updateCache() throws IOException {
+		cacheDir.mkdir();
+		
 		clearCache();
 		
 		for (File f : baseDir.listFiles()) {

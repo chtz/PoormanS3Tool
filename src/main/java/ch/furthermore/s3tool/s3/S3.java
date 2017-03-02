@@ -131,38 +131,6 @@ public class S3 {
 		return result;
 	}
 	
-	@Deprecated
-	public Map<String,Long> listKeysWithLastModifiedMeta(String bucketName) {
-		Map<String,Long> lastModifiedByKey = new HashMap<String, Long>();
-		
-		for (FileVersion v : versions(bucketName)) {
-			if (!v.isDeleted()) {
-				lastModifiedByKey.put(v.getKey(), v.getVersion());
-			}
-		}
-		
-//		ListObjectsRequest request = new ListObjectsRequest().withBucketName(bucketName);
-//		ObjectListing listing = s3.listObjects(request);
-//		for (;;) {
-//			for (S3ObjectSummary  summary : listing.getObjectSummaries()) {
-//				ObjectMetadata meta = s3.getObjectMetadata(new GetObjectMetadataRequest(summary.getBucketName(), summary.getKey()));
-//				
-//				if (meta.getUserMetadata().get(USER_META_LAST_MODIFIED) != null) {
-//					lastModifiedByKey.put(summary.getKey(),  new Long(meta.getUserMetadata().get(USER_META_LAST_MODIFIED)));
-//				}
-//			}
-//			
-//			if (listing.isTruncated()) {
-//				listing = s3.listNextBatchOfObjects(listing);
-//			}
-//			else {
-//				break;
-//			}
-//		}
-		
-		return lastModifiedByKey;
-	}
-
 	public enum GetObjectOutcome {
 		SUCCESS,
 		KEY_DECODING_FAILED,
