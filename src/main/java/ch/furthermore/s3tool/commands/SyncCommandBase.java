@@ -17,53 +17,51 @@ import ch.furthermore.s3tool.s3.S3;
 import ch.furthermore.s3tool.s3.S3.GetObjectOutcome;
 
 public abstract class SyncCommandBase extends Command { 
-	static final String CONTENT_TYPE = "application/octet-stream";
+	private static final String CONTENT_TYPE = "application/octet-stream";
 	
 	@Value(value="${bucketName}")
-	String bucketName;
+	private String bucketName;
 	
 	@Value(value="${directory}")
-	String directoryname;
+	private String directoryname;
 	
 	@Value(value="${aesKey:}")
-	String aesKeyBase64;
+	private String aesKeyBase64;
 	
 	@Value(value="${encryptPublicKey:}")
-	String encryptPublicKeyBase64;
+	private String encryptPublicKeyBase64;
 	
 	@Value(value="${signPrivateKey:}")
-	String signPrivateKeyBase64;
+	private String signPrivateKeyBase64;
 	
 	@Value(value="${decryptPrivateKey:}")
-	String decryptPrivateKeyBase64;
+	private String decryptPrivateKeyBase64;
 	
 	@Value(value="${verifyPublicKey:}")
-	String verifyPublicKeyBase64;
+	private String verifyPublicKeyBase64;
 	
 	@Autowired
-	S3 s3;
+	private S3 s3;
 	
-	LocalDirectory localDirectory;
+	private LocalDirectory localDirectory;
 	
 	@PostConstruct
 	public void init() {
 		localDirectory = new LocalDirectory(new File(directoryname));
 	}
 	
-	protected List<FileVersion> versionsToSync() {
-		List<FileVersion> localVersions = localDirectory.versions();
-		List<FileVersion> bucketVersions = s3.versions(bucketName);
-		
-		return mostRecentVersions(localVersions, bucketVersions);
+	protected abstract List<FileVersion> gatherVersionsToSync(List<FileVersion> localVersions, List<FileVersion> bucketVersions);
+	
+	protected void afterSync(LocalDirectory localDirectory) throws IOException {
+		//do nothing by default
 	}
-	
-	protected abstract List<FileVersion> mostRecentVersions(List<FileVersion> localVersions, List<FileVersion> bucketVersions);
-	
-	protected abstract void afterSync() throws IOException;
 	
 	@Override
 	public void execute() throws IOException {
-		for (FileVersion version : versionsToSync()) {
+		List<FileVersion> localVersions = localDirectory.versions();
+		List<FileVersion> bucketVersions = s3.versions(bucketName);
+		
+		for (FileVersion version : gatherVersionsToSync(localVersions, bucketVersions)) {
 			if (version.isLocal()) {
 				if (version.isDeleted()) {
 					deleteRemote(version);
@@ -82,10 +80,10 @@ public abstract class SyncCommandBase extends Command {
 			}
 		}
 		
-		afterSync();
+		afterSync(localDirectory);
 	}
 
-	Map<String, FileVersion> map(List<FileVersion> versions) {
+	protected Map<String, FileVersion> map(List<FileVersion> versions) {
 		Map<String,FileVersion> m = new HashMap<String, FileVersion>();
 		for (FileVersion v : versions) {
 			m.put(v.getKey(), v);

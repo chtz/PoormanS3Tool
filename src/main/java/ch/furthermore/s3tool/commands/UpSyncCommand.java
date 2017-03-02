@@ -1,6 +1,5 @@
 package ch.furthermore.s3tool.commands;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -14,11 +13,7 @@ import ch.furthermore.s3tool.s3.FileVersion;
 @Service("upSync" + Command.COMMAND_BEAN_NAME_SUFFIX)
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class UpSyncCommand extends SyncCommandBase {
-	protected void afterSync() throws IOException {
-		//nothing to do
-	}
-	
-	protected List<FileVersion> mostRecentVersions(List<FileVersion> localVersions, List<FileVersion> bucketVersions) { 
+	protected List<FileVersion> gatherVersionsToSync(List<FileVersion> localVersions, List<FileVersion> bucketVersions) { 
 		Map<String,FileVersion> localMap = map(localVersions);
 		Map<String,FileVersion> bucketMap = map(bucketVersions);
 		

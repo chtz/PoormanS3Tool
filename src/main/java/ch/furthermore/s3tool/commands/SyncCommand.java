@@ -10,15 +10,16 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import ch.furthermore.s3tool.s3.FileVersion;
+import ch.furthermore.s3tool.s3.LocalDirectory;
 
 @Service("sync" + Command.COMMAND_BEAN_NAME_SUFFIX)
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class SyncCommand extends SyncCommandBase {
-	protected void afterSync() throws IOException {
+	protected void afterSync(LocalDirectory localDirectory) throws IOException {
 		localDirectory.updateCache();
 	}
 	
-	protected List<FileVersion> mostRecentVersions(List<FileVersion> localVersions, List<FileVersion> bucketVersions) { 
+	protected List<FileVersion> gatherVersionsToSync(List<FileVersion> localVersions, List<FileVersion> bucketVersions) { 
 		Map<String,FileVersion> localMap = map(localVersions);
 		Map<String,FileVersion> bucketMap = map(bucketVersions);
 		
