@@ -1,12 +1,15 @@
 package ch.furthermore.s3tool.s3;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
@@ -39,6 +42,8 @@ import ch.furthermore.s3tool.crypto.Crypto;
 @Service
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class S3 {
+	private static final String DELETE_MARKER_OBJECT_PREFIX = ".deleted.";
+	
 	private static final String USER_META_LAST_MODIFIED = "lastmodified";
 	private static final String USER_META_ENCODED_KEY = "encodedkey";
 	private static final String USER_META_SIGNATURE = "signature";
@@ -90,8 +95,8 @@ public class S3 {
 		s3 = builder.build();
 	}
 	
-	public Map<String,Long> listKeysWithLastModifiedMeta(String bucketName) {
-		Map<String,Long> lastModifiedByKey = new HashMap<String, Long>();
+	public List<FileVersion> versions(String bucketName) {
+		List<FileVersion> result = new LinkedList<FileVersion>();
 		
 		ListObjectsRequest request = new ListObjectsRequest().withBucketName(bucketName);
 		ObjectListing listing = s3.listObjects(request);
@@ -100,7 +105,18 @@ public class S3 {
 				ObjectMetadata meta = s3.getObjectMetadata(new GetObjectMetadataRequest(summary.getBucketName(), summary.getKey()));
 				
 				if (meta.getUserMetadata().get(USER_META_LAST_MODIFIED) != null) {
-					lastModifiedByKey.put(summary.getKey(),  new Long(meta.getUserMetadata().get(USER_META_LAST_MODIFIED)));
+					if (summary.getKey().startsWith(DELETE_MARKER_OBJECT_PREFIX)) {
+						result.add(new FileVersion(summary.getKey().substring(DELETE_MARKER_OBJECT_PREFIX.length()),  
+								Long.parseLong(meta.getUserMetadata().get(USER_META_LAST_MODIFIED)), 
+								true,
+								false));
+					}
+					else {
+						result.add(new FileVersion(summary.getKey(),  
+								Long.parseLong(meta.getUserMetadata().get(USER_META_LAST_MODIFIED)), 
+								false,
+								false));
+					}
 				}
 			}
 			
@@ -111,6 +127,38 @@ public class S3 {
 				break;
 			}
 		}
+		
+		return result;
+	}
+	
+	@Deprecated
+	public Map<String,Long> listKeysWithLastModifiedMeta(String bucketName) {
+		Map<String,Long> lastModifiedByKey = new HashMap<String, Long>();
+		
+		for (FileVersion v : versions(bucketName)) {
+			if (!v.isDeleted()) {
+				lastModifiedByKey.put(v.getKey(), v.getVersion());
+			}
+		}
+		
+//		ListObjectsRequest request = new ListObjectsRequest().withBucketName(bucketName);
+//		ObjectListing listing = s3.listObjects(request);
+//		for (;;) {
+//			for (S3ObjectSummary  summary : listing.getObjectSummaries()) {
+//				ObjectMetadata meta = s3.getObjectMetadata(new GetObjectMetadataRequest(summary.getBucketName(), summary.getKey()));
+//				
+//				if (meta.getUserMetadata().get(USER_META_LAST_MODIFIED) != null) {
+//					lastModifiedByKey.put(summary.getKey(),  new Long(meta.getUserMetadata().get(USER_META_LAST_MODIFIED)));
+//				}
+//			}
+//			
+//			if (listing.isTruncated()) {
+//				listing = s3.listNextBatchOfObjects(listing);
+//			}
+//			else {
+//				break;
+//			}
+//		}
 		
 		return lastModifiedByKey;
 	}
@@ -207,14 +255,50 @@ public class S3 {
 		finally {
 			in.close();
 		}
+		
+		deleteDeleteMarkerObjectIfExisting(bucketName, key);
 	}
 
 	public void createBucket(String bucketName) {
 		s3.createBucket(new CreateBucketRequest(bucketName, region));
 	}
 
-	public void deleteObject(String bucketName, String key) {
+	public void deleteObject(String bucketName, String key) throws IOException {
+		putDeleteMarkerObject(bucketName, key);
+		
 		s3.deleteObject(bucketName, key);
+	}
+
+	private void deleteDeleteMarkerObjectIfExisting(String bucketName, String key) {
+		if (s3.doesObjectExist(bucketName, DELETE_MARKER_OBJECT_PREFIX + key)) {
+			s3.deleteObject(new DeleteObjectRequest(bucketName, DELETE_MARKER_OBJECT_PREFIX + key));
+		}
+	}
+	
+	private void putDeleteMarkerObject(String bucketName, String key) throws IOException {
+		ObjectMetadata meta = s3.getObjectMetadata(new GetObjectMetadataRequest(bucketName, key));
+		
+		if (meta.getUserMetadata().get(USER_META_LAST_MODIFIED) != null) {
+			Map<String, String> userMetadata = new HashMap<String, String>();
+			userMetadata.put(USER_META_LAST_MODIFIED, meta.getUserMetadata().get(USER_META_LAST_MODIFIED));
+			
+			byte[] data = new byte[]{0};
+			
+			ObjectMetadata metadata = new ObjectMetadata();
+			metadata.setUserMetadata(userMetadata);
+			metadata.setContentLength(data.length);
+			metadata.setContentType("application/octet-stream");
+				
+			InputStream in = new ByteArrayInputStream(data);
+			try {
+				PutObjectRequest request = new PutObjectRequest(bucketName, DELETE_MARKER_OBJECT_PREFIX + key, in, metadata);
+				
+				s3.putObject(request);
+			}
+			finally {
+				in.close();
+			}
+		}
 	}
 
 	public void deleteBucket(String bucketName) {

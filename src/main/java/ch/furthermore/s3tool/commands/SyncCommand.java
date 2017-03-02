@@ -2,6 +2,9 @@ package ch.furthermore.s3tool.commands;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,15 +13,14 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import ch.furthermore.s3tool.s3.FileVersion;
+import ch.furthermore.s3tool.s3.LocalDirectory;
 import ch.furthermore.s3tool.s3.S3;
 import ch.furthermore.s3tool.s3.S3.GetObjectOutcome;
 
-/**
- * FIXME (Design-) bug: deleted items in s3 cause deletion of "newer" local files 
- */
 @Service("sync" + Command.COMMAND_BEAN_NAME_SUFFIX)
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-public class SyncCommand extends Command { //FIXME experimental //FIXME avoid heavy code duplication
+public class SyncCommand extends Command { 
 	private static final String CONTENT_TYPE = "application/octet-stream";
 	
 	@Value(value="${bucketName}")
@@ -47,142 +49,144 @@ public class SyncCommand extends Command { //FIXME experimental //FIXME avoid he
 	
 	@Override
 	public void execute() throws IOException {
-		final Map<String,Long> lastModifiedByKey = s3.listKeysWithLastModifiedMeta(bucketName);
+		LocalDirectory localDirectory = new LocalDirectory(new File(directoryname));
 		
-		File directory = new File(directoryname);
-		
-		File remoteCacheDir = new File(directory, ".remote");
-		remoteCacheDir.mkdir();
-		
-		for (File file : directory.listFiles()) {
-			if (file.isDirectory()) continue;
-			
-			String key = file.getName();
-			
-			File remoteCacheFile = new File(remoteCacheDir, key);
-			
-			if (lastModifiedByKey.containsKey(key)) {
-				//local file is already in bucket
-				
-				long lastModifiedS3 = lastModifiedByKey.remove(key);
-				
-				if (((long)(file.lastModified() / 1000)) > ((long)(lastModifiedS3 / 1000))) {
-					//local file is newer than file in bucket
-					
-					putObject(file, key);
-					
-					remoteCacheFile.createNewFile();
-					remoteCacheFile.setLastModified(file.lastModified());
-					
-					syserr("uploaded newer " + file + " to s3://" + bucketName + "/" + key);
-				}
-				else if (((long)(file.lastModified() / 1000)) == ((long)(lastModifiedS3 / 1000))) {
-					//local file and file in bucket have same age - do nothing
-					
-					syserr(file + " is up to date");
+		for (FileVersion version : mostRecentVersions(localDirectory.versions(), s3.versions(bucketName))) {
+			if (version.isLocal()) {
+				if (version.isDeleted()) {
+					deleteRemote(version);
 				}
 				else {
-					//local file is older than file in bucket
-					
-					switch (getObject(key, file)) {
-					case KEY_DECODING_FAILED:
-						file.delete();
-						remoteCacheDir.delete();
-						
-						syserr("NOT downloaded newer s3://" + bucketName + "/" + key + " (key decode failed)");
-						break;
-					case SIGNATURE_VERIFICATION_FAILED:
-						file.delete();
-						remoteCacheDir.delete();
-						
-						syserr("downloaded newer s3://" + bucketName + "/" + key + ", but signature verification failed. Removed " + file);
-						break;
-					case SUCCESS:
-						file.setLastModified(lastModifiedS3);
-						
-						remoteCacheFile.createNewFile();
-						remoteCacheFile.setLastModified(file.lastModified());
-						
-						syserr("downloaded newer s3://" + bucketName + "/" + key + " to " + file);
-						break;
-					}
+					upload(version);
 				}
 			}
 			else {
-				//local file is not in bucket
-				
-				if (!remoteCacheFile.exists()) {
-					//local file was not recently uploaded to s3 by this client -> uploading
-					
-					putObject(file, key);
-					
-					remoteCacheFile.createNewFile();
-					remoteCacheFile.setLastModified(file.lastModified());
-				
-					syserr("uploaded new " + file + " to s3://" + bucketName + "/" + key);
+				if (version.isDeleted()) {
+					deleteLocal(version);
 				}
 				else {
-					//local file was recently uploaded to s3 by this client -> deleted from s3 by another client -> removing local file
-					
-					file.delete();
-					
-					remoteCacheFile.delete();
-					
-					syserr("deleted " + file);
+					download(version);
 				}
 			}
 		}
+		
+		localDirectory.updateCache();
+	}
 
-		for (Map.Entry<String, Long> lastModifiedKey : lastModifiedByKey.entrySet()) {
-			//bucket file is not in local directory
+	private void download(FileVersion version) throws IOException {
+		File file = new File(directoryname, version.getKey());
+		
+		switch (getObject(version.getKey(), file)) {
+		case KEY_DECODING_FAILED:
+			createEmptyMarkerFile(version);
+			syserr("NOT downloaded s3://" + bucketName + "/" + version.getKey() + " (key decode failed). Leaving empty " + file);
+			break;
 			
-			String key = lastModifiedKey.getKey();
+		case SIGNATURE_VERIFICATION_FAILED:
+			createEmptyMarkerFile(version);
+			syserr("NOT downloaded s3://" + bucketName + "/" + version.getKey() + " (signature verification failed). Leaving empty " + file);
+			break;
 			
-			File file = new File(directory, key);
-			
-			File remoteCacheFile = new File(remoteCacheDir, key);
-			
-			if (remoteCacheFile.exists() && ((long)(remoteCacheFile.lastModified() / 1000)) == ((long)(lastModifiedKey.getValue() / 1000))) {
-				//(no longer existing) local file was recently uploaded to s3 by this client -> delete from s3 
-				
-				deleteObject(key);
-			
-				remoteCacheFile.delete();
-				
-				syserr("deleted s3://" + bucketName + "/" + key);
-			}
-			else {
-				//bucket file was not recently downloaded by this client -> downloading
-				
-				switch (getObject(key, file)) {
-				case KEY_DECODING_FAILED:
-					syserr("NOT downloaded new s3://" + bucketName + "/" + key + " (key decode failed)");
-					break;
-				case SIGNATURE_VERIFICATION_FAILED:
-					syserr("downloaded new s3://" + bucketName + "/" + key + ", but signature verification failed. Removed " + file);
-					break;
-				case SUCCESS:
-					file.setLastModified(lastModifiedKey.getValue());
-					
-					remoteCacheFile.createNewFile();
-					remoteCacheFile.setLastModified(file.lastModified());
-					
-					syserr("downloaded new s3://" + bucketName + "/" + key + " to " + file);
-					break;
-				}
-			}
+		case SUCCESS:
+			file.setLastModified(version.getVersion());
+			syserr("downloaded s3://" + bucketName + "/" + version.getKey() + " to " + file);
+			break;
 		}
 	}
-
-	private void deleteObject(String key) {
-		s3.deleteObject(bucketName, key);
+	
+	private void createEmptyMarkerFile(FileVersion version) throws IOException {
+		File file = new File(directoryname, version.getKey());
+		file.delete();
+		file.createNewFile();
+		file.setLastModified(version.getVersion());
 	}
 
+	private GetObjectOutcome getObject(String key, File file) throws IOException {
+		return s3.getObject(bucketName, aesKeyBase64, decryptPrivateKeyBase64, verifyPublicKeyBase64, key, file);
+	}
+
+	private void upload(FileVersion version) throws IOException {
+		File file = new File(directoryname, version.getKey());
+		
+		putObject(file, version.getKey());
+	
+		syserr("uploaded " + file + " to s3://" + bucketName + "/" + version.getKey());
+	}
+	
 	private void putObject(File file, String key) throws IOException {
 		s3.putObject(bucketName, aesKeyBase64, encryptPublicKeyBase64, signPrivateKeyBase64, key, CONTENT_TYPE, file);
 	}
 	
-	private GetObjectOutcome getObject(String key, File file) throws IOException {
-		return s3.getObject(bucketName, aesKeyBase64, decryptPrivateKeyBase64, verifyPublicKeyBase64, key, file);
+	private void deleteLocal(FileVersion version) {
+		File file = new File(directoryname, version.getKey());
+		
+		if (file.exists()) {
+			file.delete();
+			
+			syserr("deleted " + file);
+		}
+	}
+
+	private void deleteRemote(FileVersion version) throws IOException {
+		deleteObject(version.getKey());
+		
+		syserr("deleted s3://" + bucketName + "/" + version.getKey());
+	}
+	
+	private void deleteObject(String key) throws IOException {
+		s3.deleteObject(bucketName, key);
+	}
+
+	private List<FileVersion> mostRecentVersions(List<FileVersion> localVersions, List<FileVersion> bucketVersions) { 
+		Map<String,FileVersion> localMap = map(localVersions);
+		Map<String,FileVersion> bucketMap = map(bucketVersions);
+		
+		List<FileVersion> result = new LinkedList<FileVersion>();
+		for (String key : localMap.keySet()) {
+			FileVersion localVersion = localMap.get(key);
+			if (bucketMap.containsKey(key)) {
+				FileVersion bucketVersion = bucketMap.get(key);
+				if (localVersion.getVersion() / 1000 > bucketVersion.getVersion() / 1000) {
+					result.add(localVersion);
+				}
+				else if (localVersion.getVersion() / 1000 < bucketVersion.getVersion() / 1000) {
+					result.add(bucketVersion);
+				}
+				else {
+					if (localVersion.isDeleted() && bucketVersion.isDeleted()) {
+						//nothing to do
+					}
+					else if (localVersion.isDeleted()) {
+						result.add(localVersion);
+					}
+					else if (bucketVersion.isDeleted()) {
+						result.add(bucketVersion);
+					}
+					else {
+						//nothing to do
+					}
+				}
+			}
+			else {
+				result.add(localVersion);
+			}
+		}
+		
+		for (String key : bucketMap.keySet()) {
+			FileVersion bucketVersion = bucketMap.get(key);
+			if (!localMap.containsKey(key)) {
+				result.add(bucketVersion);
+			}
+		}
+		
+		return result;
+	}
+
+	private Map<String, FileVersion> map(List<FileVersion> versions) {
+		Map<String,FileVersion> m = new HashMap<String, FileVersion>();
+		for (FileVersion v : versions) {
+			m.put(v.getKey(), v);
+		}
+		return m;
 	}
 }

@@ -71,7 +71,7 @@ public class UpSyncCommand extends Command {
 		}
 	}
 
-	private void deleteObject(String key) {
+	private void deleteObject(String key) throws IOException {
 		s3.deleteObject(bucketName, key);
 	}
 
