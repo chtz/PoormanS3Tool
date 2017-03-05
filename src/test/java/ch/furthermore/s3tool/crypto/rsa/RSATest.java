@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.security.KeyPair;
 
 import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
@@ -12,12 +13,11 @@ import org.junit.Test;
 import ch.furthermore.s3tool.crypto.aes.AESKeyGenerator;
 
 public class RSATest {
-
 	@Test
 	public void test() {
-		RsaKeyPair keyPair = RSAKeyGenerator.createKeyPair();
-		RSA publicKey = new RSA(null, keyPair.getPublicKeyData());
-		RSA privateKey = new RSA(keyPair.getPrivateKeyData(), null);
+		KeyPair keyPair = RSAKeyGenerator.createKeyPair();
+		RSA publicKey = new RSA(null, keyPair.getPublic().getEncoded());
+		RSA privateKey = new RSA(keyPair.getPrivate().getEncoded(), null);
 		
 		byte[] data = AESKeyGenerator.createKeyData();
 		

@@ -16,14 +16,13 @@ import ch.furthermore.s3tool.crypto.aes.AES;
 import ch.furthermore.s3tool.crypto.aes.AESKeyGenerator;
 import ch.furthermore.s3tool.crypto.rsa.RSA;
 import ch.furthermore.s3tool.crypto.rsa.RSAKeyGenerator;
-import ch.furthermore.s3tool.crypto.rsa.RsaKeyPair;
 
 @Service
 public class Crypto {
 	public KeyPair genKeyPair() {
-		RsaKeyPair keyPair = RSAKeyGenerator.createKeyPair();
+		java.security.KeyPair keyPair = RSAKeyGenerator.createKeyPair();
 		
-		return new KeyPair(Base64.encodeBase64String(keyPair.getPublicKeyData()), Base64.encodeBase64String(keyPair.getPrivateKeyData()));
+		return new KeyPair(Base64.encodeBase64String(keyPair.getPublic().getEncoded()), Base64.encodeBase64String(keyPair.getPrivate().getEncoded()));
 	}
 	
 	public String encodeKey(String publicKeyBase64, String aesKeyBase64) {

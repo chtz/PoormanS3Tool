@@ -10,14 +10,11 @@ public class RSAKeyGenerator {
 	private static final String SHA1PRNG = "SHA1PRNG";
 	private static final String RSA = "RSA";
 	
-	public static RsaKeyPair createKeyPair() {
+	public static KeyPair createKeyPair() {
 		try {
 			KeyPairGenerator keyPairGenerator = keyPairGenerator(RSA);
 			keyPairGenerator.initialize(RSA_KEY_SIZE, secureRandom(SHA1PRNG));
-
-			KeyPair generatedKeyPair = keyPairGenerator.generateKeyPair();
-	
-			return new RsaKeyPair(generatedKeyPair.getPrivate().getEncoded(), generatedKeyPair.getPublic().getEncoded());
+			return keyPairGenerator.generateKeyPair();
 		}
 		catch (Exception e) {
             throw new RuntimeException("crypto: cannot create key", e);
