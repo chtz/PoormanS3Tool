@@ -17,7 +17,7 @@ After down sync: local directory is identical with s3://bucket (files added, fil
 ## Up Sync
 
 ```
-cat application-uploader.properties 
+cat application.properties 
 ```
 
 ```
@@ -31,13 +31,13 @@ directory=out
 ```
 
 ```
-java -jar s3tool-0.0.2-SNAPSHOT.jar --spring.profiles.active=uploader
+java -jar s3tool-0.0.2-SNAPSHOT.jar
 ```
 
 ## Down Sync
 
 ```
-cat application-downloader.properties
+cat application.properties
 ```
 
 ``` 
@@ -51,7 +51,29 @@ directory=in
 ```
 
 ```
-java -jar s3tool-0.0.2-SNAPSHOT.jar --spring.profiles.active=downloader
+java -jar s3tool-0.0.2-SNAPSHOT.jar
+```
+
+## Two-way Sync
+
+```
+cat application.properties
+```
+
+``` 
+bucketName=samplebucket
+accessKey=AKIAJZ...
+secretKey=DKPJ3e32x...
+decryptPrivateKey=MIIJQwIBA...
+verifyPublicKey=MIICIjANBgkq...
+encryptPublicKey=MIICIjAN...
+signPrivateKey=MIIJQwIBAD...
+command=sync
+directory=sync
+```
+
+```
+java -jar s3tool-0.0.2-SNAPSHOT.jar
 ```
 
 ## Admin tasks
@@ -66,7 +88,7 @@ cd samplebucket
 ../scripts/create_bucket.sh samplebucket
 ```
 
-### 2) Create up sync read/write IAM user, configuration file and script
+### 2a) Create up sync read/write IAM user, configuration file and script
 
 ```
 export IAM_S3_ADMIN_ACCESS_KEY=...
@@ -75,7 +97,7 @@ cd samplebucket
 ../scripts/create_uploader_config.sh samplebucket samplebucket-uploader
 ```
 
-### 3) Create down sync read-only IAM user, configuration file and script
+### 2b) Create down sync read-only IAM user, configuration file and script
 
 ```
 export IAM_S3_ADMIN_ACCESS_KEY=...
@@ -84,7 +106,16 @@ cd samplebucket
 ../scripts/create_downloader_config.sh samplebucket samplebucket-downloader
 ```
 
-### n) Delete bucket (and all data), IAM (read/write and read-only) groups and all (read/wite and read-only) IAM users
+### 2c) Create two-way sync read/write IAM user, configuration file and script
+
+```
+export IAM_S3_ADMIN_ACCESS_KEY=...
+export IAM_S3_ADMIN_SECRET_KEY=...
+cd samplebucket
+../scripts/create_sync_config.sh samplebucket samplebucket-syncer
+```
+
+### 3) Delete bucket (and all data), IAM (read/write and read-only) groups and all (read/wite and read-only) IAM users
 
 ```
 export IAM_S3_ADMIN_ACCESS_KEY=...
