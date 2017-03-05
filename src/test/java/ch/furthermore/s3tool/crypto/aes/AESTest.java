@@ -1,4 +1,4 @@
-package ch.furthermore.s3tool.crypto;
+package ch.furthermore.s3tool.crypto.aes;
 
 import static org.junit.Assert.assertArrayEquals;
 
@@ -14,9 +14,10 @@ import javax.crypto.NoSuchPaddingException;
 
 import org.junit.Test;
 
-import ch.furthermore.s3tool.crypto.AES;
+import ch.furthermore.s3tool.crypto.aes.AES;
+import ch.furthermore.s3tool.crypto.aes.AESKeyGenerator;
 
-public class AESKeyTest {
+public class AESTest {
 	@Test
 	public void testKeyGenAndEncAndDecStream2() throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException {
 		testKeyGenAndEncAndDecStream2(10, 100);
@@ -29,11 +30,12 @@ public class AESKeyTest {
 	}
 	
 	private void testKeyGenAndEncAndDecStream2(int plainSize, int bufSize)
-			throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException {
+			throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException 
+	{
 		byte[] plain = new byte[plainSize];
 		new Random().nextBytes(plain);
 		
-		byte[] keyData = AES.createKeyData();
+		byte[] keyData = AESKeyGenerator.createKeyData();
 		
 		AES key2 = new AES(keyData);
 		InputStream decodingIn = key2.decodingInputStream(key2.encodingInputStream(new ByteArrayInputStream(plain)));

@@ -1,4 +1,4 @@
-package ch.furthermore.s3tool.crypto;
+package ch.furthermore.s3tool.crypto.aes;
 
 import java.io.IOException;
 import java.io.InputStream;

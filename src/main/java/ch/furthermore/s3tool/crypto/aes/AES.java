@@ -1,11 +1,10 @@
-package ch.furthermore.s3tool.crypto;
+package ch.furthermore.s3tool.crypto.aes;
 
 import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
 import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -23,15 +22,6 @@ public class AES {
         }
     }
     
-    public static byte[] createKeyData() {
-		try {
-    		return KeyGenerator.getInstance(AES).generateKey().getEncoded();
-    	}
-        catch (Exception e) {
-            throw new RuntimeException("crypto: cannot create key", e);
-        }
-    }
-    
     public InputStream encodingInputStream(InputStream target) {
     	try {
 			return new CipherInputStreamWrapper(encodingCipher(), target);
@@ -44,6 +34,12 @@ public class AES {
 		}
     }
     
+    private Cipher encodingCipher() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
+		Cipher cipher = Cipher.getInstance(AES);
+		cipher.init(Cipher.ENCRYPT_MODE, key);
+		return cipher;
+	}
+    
 	public InputStream decodingInputStream(InputStream target) {
 		try {
 			return new CipherInputStreamWrapper(decodingCipher(), target);
@@ -54,12 +50,6 @@ public class AES {
 		} catch (NoSuchPaddingException e) {
 			throw new RuntimeException("crypto: no such padding", e);
 		}
-	}
-	
-	private Cipher encodingCipher() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
-		Cipher cipher = Cipher.getInstance(AES);
-		cipher.init(Cipher.ENCRYPT_MODE, key);
-		return cipher;
 	}
 	
 	private Cipher decodingCipher() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {

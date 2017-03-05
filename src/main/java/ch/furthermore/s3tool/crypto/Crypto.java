@@ -12,12 +12,18 @@ import java.io.OutputStream;
 import org.apache.commons.codec.binary.Base64;
 import org.springframework.stereotype.Service;
 
+import ch.furthermore.s3tool.crypto.aes.AES;
+import ch.furthermore.s3tool.crypto.aes.AESKeyGenerator;
+import ch.furthermore.s3tool.crypto.rsa.RSA;
+import ch.furthermore.s3tool.crypto.rsa.RSAKeyGenerator;
+import ch.furthermore.s3tool.crypto.rsa.RsaKeyPair;
+
 @Service
 public class Crypto {
 	public KeyPair genKeyPair() {
-		RSA rsa = new RSA(RSA.RSA_KEY_SIZE);
+		RsaKeyPair keyPair = RSAKeyGenerator.createKeyPair();
 		
-		return new KeyPair(Base64.encodeBase64String(rsa.getPublicKey()), Base64.encodeBase64String(rsa.getPrivateKey()));
+		return new KeyPair(Base64.encodeBase64String(keyPair.getPublicKeyData()), Base64.encodeBase64String(keyPair.getPrivateKeyData()));
 	}
 	
 	public String encodeKey(String publicKeyBase64, String aesKeyBase64) {
@@ -57,7 +63,7 @@ public class Crypto {
 	}
 	
 	public String genKey() {
-		return Base64.encodeBase64String(AES.createKeyData());
+		return Base64.encodeBase64String(AESKeyGenerator.createKeyData());
 	}
 	
 	private AES aesKey(String aesKeyBase64) {
@@ -95,24 +101,6 @@ public class Crypto {
 		final byte[] buf = new byte[4096];
 		for (int l = in.read(buf); l != -1; l = in.read(buf)) {
 			out.write(buf, 0, l);
-		}
-	}
-	
-	public static class KeyPair {
-		private final String publicKey;
-		private final String privateKey;
-		
-		public KeyPair(String publicKey, String privateKey) {
-			this.publicKey = publicKey;
-			this.privateKey = privateKey;
-		}
-		
-		public String getPublicKey() {
-			return publicKey;
-		}
-		
-		public String getPrivateKey() {
-			return privateKey;
 		}
 	}
 }

@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import ch.furthermore.s3tool.crypto.Crypto;
-import ch.furthermore.s3tool.crypto.Crypto.KeyPair;
+import ch.furthermore.s3tool.crypto.KeyPair;
 
 @Service("genEncryptionKeyPair" + Command.COMMAND_BEAN_NAME_SUFFIX)
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
