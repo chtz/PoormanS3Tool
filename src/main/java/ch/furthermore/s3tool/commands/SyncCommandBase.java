@@ -11,7 +11,7 @@ import javax.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
-import ch.furthermore.s3tool.s3.FileVersion;
+import ch.furthermore.s3tool.s3.FileSyncInfo;
 import ch.furthermore.s3tool.s3.LocalDirectory;
 import ch.furthermore.s3tool.s3.S3;
 import ch.furthermore.s3tool.s3.S3.GetObjectOutcome;
@@ -50,7 +50,7 @@ public abstract class SyncCommandBase extends Command {
 		localDirectory = new LocalDirectory(new File(directoryname));
 	}
 	
-	protected abstract List<FileVersion> gatherVersionsToSync(List<FileVersion> localVersions, List<FileVersion> bucketVersions);
+	protected abstract List<FileSyncInfo> gatherFilesToSync(List<FileSyncInfo> localVersions, List<FileSyncInfo> bucketVersions);
 	
 	protected void afterSync(LocalDirectory localDirectory) throws IOException {
 		//do nothing by default
@@ -58,10 +58,10 @@ public abstract class SyncCommandBase extends Command {
 	
 	@Override
 	public void execute() throws IOException {
-		List<FileVersion> localVersions = localDirectory.versions();
-		List<FileVersion> bucketVersions = s3.versions(bucketName);
+		List<FileSyncInfo> localVersions = localDirectory.versions();
+		List<FileSyncInfo> bucketVersions = s3.versions(bucketName);
 		
-		for (FileVersion version : gatherVersionsToSync(localVersions, bucketVersions)) {
+		for (FileSyncInfo version : gatherFilesToSync(localVersions, bucketVersions)) {
 			if (version.isLocal()) {
 				if (version.isDeleted()) {
 					deleteRemote(version);
@@ -83,15 +83,15 @@ public abstract class SyncCommandBase extends Command {
 		afterSync(localDirectory);
 	}
 
-	protected Map<String, FileVersion> map(List<FileVersion> versions) {
-		Map<String,FileVersion> m = new HashMap<String, FileVersion>();
-		for (FileVersion v : versions) {
+	protected Map<String, FileSyncInfo> map(List<FileSyncInfo> versions) {
+		Map<String,FileSyncInfo> m = new HashMap<String, FileSyncInfo>();
+		for (FileSyncInfo v : versions) {
 			m.put(v.getKey(), v);
 		}
 		return m;
 	}
 
-	private void download(FileVersion version) throws IOException {
+	private void download(FileSyncInfo version) throws IOException {
 		File file = new File(directoryname, version.getKey());
 		
 		switch (getObject(version.getKey(), file)) {
@@ -106,24 +106,24 @@ public abstract class SyncCommandBase extends Command {
 			break;
 			
 		case SUCCESS:
-			file.setLastModified(version.getVersion());
+			file.setLastModified(version.getLastModified());
 			syserr("downloaded s3://" + bucketName + "/" + version.getKey() + " to " + file);
 			break;
 		}
 	}
 	
-	private void createEmptyMarkerFile(FileVersion version) throws IOException {
+	private void createEmptyMarkerFile(FileSyncInfo version) throws IOException {
 		File file = new File(directoryname, version.getKey());
 		file.delete();
 		file.createNewFile();
-		file.setLastModified(version.getVersion());
+		file.setLastModified(version.getLastModified());
 	}
 
 	private GetObjectOutcome getObject(String key, File file) throws IOException {
 		return s3.getObject(bucketName, aesKeyBase64, decryptPrivateKeyBase64, verifyPublicKeyBase64, key, file);
 	}
 
-	private void upload(FileVersion version) throws IOException {
+	private void upload(FileSyncInfo version) throws IOException {
 		File file = new File(directoryname, version.getKey());
 		
 		putObject(file, version.getKey());
@@ -135,7 +135,7 @@ public abstract class SyncCommandBase extends Command {
 		s3.putObject(bucketName, aesKeyBase64, encryptPublicKeyBase64, signPrivateKeyBase64, key, CONTENT_TYPE, file);
 	}
 	
-	private void deleteLocal(FileVersion version) {
+	private void deleteLocal(FileSyncInfo version) {
 		File file = new File(directoryname, version.getKey());
 		
 		if (file.exists()) {
@@ -145,7 +145,7 @@ public abstract class SyncCommandBase extends Command {
 		}
 	}
 
-	private void deleteRemote(FileVersion version) throws IOException {
+	private void deleteRemote(FileSyncInfo version) throws IOException {
 		deleteObject(version.getKey());
 		
 		syserr("deleted s3://" + bucketName + "/" + version.getKey());

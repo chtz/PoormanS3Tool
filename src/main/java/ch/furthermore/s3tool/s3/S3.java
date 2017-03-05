@@ -95,8 +95,8 @@ public class S3 {
 		s3 = builder.build();
 	}
 	
-	public List<FileVersion> versions(String bucketName) {
-		List<FileVersion> result = new LinkedList<FileVersion>();
+	public List<FileSyncInfo> versions(String bucketName) {
+		List<FileSyncInfo> result = new LinkedList<FileSyncInfo>();
 		
 		ListObjectsRequest request = new ListObjectsRequest().withBucketName(bucketName);
 		ObjectListing listing = s3.listObjects(request);
@@ -106,13 +106,13 @@ public class S3 {
 				
 				if (meta.getUserMetadata().get(USER_META_LAST_MODIFIED) != null) {
 					if (summary.getKey().startsWith(DELETE_MARKER_OBJECT_PREFIX)) {
-						result.add(new FileVersion(summary.getKey().substring(DELETE_MARKER_OBJECT_PREFIX.length()),  
+						result.add(new FileSyncInfo(summary.getKey().substring(DELETE_MARKER_OBJECT_PREFIX.length()),  
 								Long.parseLong(meta.getUserMetadata().get(USER_META_LAST_MODIFIED)), 
 								true,
 								false));
 					}
 					else {
-						result.add(new FileVersion(summary.getKey(),  
+						result.add(new FileSyncInfo(summary.getKey(),  
 								Long.parseLong(meta.getUserMetadata().get(USER_META_LAST_MODIFIED)), 
 								false,
 								false));

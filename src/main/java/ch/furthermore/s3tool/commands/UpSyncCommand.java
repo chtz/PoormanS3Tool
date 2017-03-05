@@ -8,25 +8,25 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import ch.furthermore.s3tool.s3.FileVersion;
+import ch.furthermore.s3tool.s3.FileSyncInfo;
 
 @Service("upSync" + Command.COMMAND_BEAN_NAME_SUFFIX)
 @Scope(value=ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class UpSyncCommand extends SyncCommandBase {
-	protected List<FileVersion> gatherVersionsToSync(List<FileVersion> localVersions, List<FileVersion> bucketVersions) { 
-		Map<String,FileVersion> localMap = map(localVersions);
-		Map<String,FileVersion> bucketMap = map(bucketVersions);
+	protected List<FileSyncInfo> gatherFilesToSync(List<FileSyncInfo> localVersions, List<FileSyncInfo> bucketVersions) { 
+		Map<String,FileSyncInfo> localMap = map(localVersions);
+		Map<String,FileSyncInfo> bucketMap = map(bucketVersions);
 		
-		List<FileVersion> result = new LinkedList<FileVersion>();
+		List<FileSyncInfo> result = new LinkedList<FileSyncInfo>();
 		
 		for (String key : localMap.keySet()) {
-			FileVersion localVersion = localMap.get(key);
+			FileSyncInfo localVersion = localMap.get(key);
 			if (bucketMap.containsKey(key)) {
-				FileVersion bucketVersion = bucketMap.get(key);
+				FileSyncInfo bucketVersion = bucketMap.get(key);
 				if (bucketVersion.isDeleted()) {
 					result.add(localVersion);
 				}
-				else if (bucketVersion.getVersion() / 1000 < localVersion.getVersion() / 1000) {
+				else if (bucketVersion.getVersion() < localVersion.getVersion()) {
 					result.add(localVersion);
 				}
 				else {
@@ -39,10 +39,10 @@ public class UpSyncCommand extends SyncCommandBase {
 		}
 		
 		for (String key : bucketMap.keySet()) {
-			FileVersion bucketVersion = bucketMap.get(key);
+			FileSyncInfo bucketVersion = bucketMap.get(key);
 			
 			if (!bucketVersion.isDeleted() && !localMap.containsKey(key)) {
-				result.add(new FileVersion(key, bucketVersion.getVersion(), true, true));
+				result.add(new FileSyncInfo(key, bucketVersion.getLastModified(), true, true));
 			}
 		}
 		

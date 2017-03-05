@@ -15,15 +15,15 @@ public class LocalDirectory {
 		this.cacheDir = new File(baseDir, ".lastsync");
 	}
 	
-	public List<FileVersion> versions() {
-		List<FileVersion> result = new LinkedList<FileVersion>();
+	public List<FileSyncInfo> versions() {
+		List<FileSyncInfo> result = new LinkedList<FileSyncInfo>();
 		
 		if (cacheDir.exists()) {
 			for (File v : cacheDir.listFiles()) {
 				File f = new File(baseDir, v.getName());
 				
 				if (!f.exists()) {
-					result.add(new FileVersion(v, true, true));
+					result.add(new FileSyncInfo(v, true, true));
 				}
 			}
 		}
@@ -31,7 +31,7 @@ public class LocalDirectory {
 		for (File f : baseDir.listFiles()) {
 			if (f.isDirectory()) continue;
 			
-			result.add(new FileVersion(f, false, true));
+			result.add(new FileSyncInfo(f, false, true));
 		}
 		
 		return result;

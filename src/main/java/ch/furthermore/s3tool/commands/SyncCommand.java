@@ -9,7 +9,7 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import ch.furthermore.s3tool.s3.FileVersion;
+import ch.furthermore.s3tool.s3.FileSyncInfo;
 import ch.furthermore.s3tool.s3.LocalDirectory;
 
 @Service("sync" + Command.COMMAND_BEAN_NAME_SUFFIX)
@@ -19,20 +19,20 @@ public class SyncCommand extends SyncCommandBase {
 		localDirectory.updateCache();
 	}
 	
-	protected List<FileVersion> gatherVersionsToSync(List<FileVersion> localVersions, List<FileVersion> bucketVersions) { 
-		Map<String,FileVersion> localMap = map(localVersions);
-		Map<String,FileVersion> bucketMap = map(bucketVersions);
+	protected List<FileSyncInfo> gatherFilesToSync(List<FileSyncInfo> localVersions, List<FileSyncInfo> bucketVersions) { 
+		Map<String,FileSyncInfo> localMap = map(localVersions);
+		Map<String,FileSyncInfo> bucketMap = map(bucketVersions);
 		
-		List<FileVersion> result = new LinkedList<FileVersion>();
+		List<FileSyncInfo> result = new LinkedList<FileSyncInfo>();
 		
 		for (String key : localMap.keySet()) {
-			FileVersion localVersion = localMap.get(key);
+			FileSyncInfo localVersion = localMap.get(key);
 			if (bucketMap.containsKey(key)) {
-				FileVersion bucketVersion = bucketMap.get(key);
-				if (localVersion.getVersion() / 1000 > bucketVersion.getVersion() / 1000) {
+				FileSyncInfo bucketVersion = bucketMap.get(key);
+				if (localVersion.getVersion() > bucketVersion.getVersion()) {
 					result.add(localVersion);
 				}
-				else if (localVersion.getVersion() / 1000 < bucketVersion.getVersion() / 1000) {
+				else if (localVersion.getVersion() < bucketVersion.getVersion()) {
 					result.add(bucketVersion);
 				}
 				else {
@@ -56,7 +56,7 @@ public class SyncCommand extends SyncCommandBase {
 		}
 		
 		for (String key : bucketMap.keySet()) {
-			FileVersion bucketVersion = bucketMap.get(key);
+			FileSyncInfo bucketVersion = bucketMap.get(key);
 			if (!localMap.containsKey(key)) {
 				result.add(bucketVersion);
 			}
