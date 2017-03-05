@@ -6,7 +6,7 @@
 #export IAM_S3_ADMIN_ACCESS_KEY=...
 #export IAM_S3_ADMIN_SECRET_KEY=...
 
-JAR_FILE=$(dirname "$0")/../target/s3tool-0.0.2-SNAPSHOT.jar
+JAR_FILE=$(dirname "$0")/../target/s3tool-0.0.3-SNAPSHOT.jar
  
 BUCKET_NAME=$1
 USER_NAME=$2 
@@ -24,5 +24,5 @@ echo directory=in >> $USER_NAME/application.properties
 
 cp $JAR_FILE $USER_NAME/
  
-echo java -jar s3tool-0.0.2-SNAPSHOT.jar > $USER_NAME/download.sh
+echo java -jar s3tool-0.0.3-SNAPSHOT.jar > $USER_NAME/download.sh
 chmod +x $USER_NAME/download.sh

@@ -31,7 +31,7 @@ directory=out
 ```
 
 ```
-java -jar s3tool-0.0.2-SNAPSHOT.jar
+java -jar s3tool-0.0.2.jar
 ```
 
 ## Down Sync
@@ -51,7 +51,7 @@ directory=in
 ```
 
 ```
-java -jar s3tool-0.0.2-SNAPSHOT.jar
+java -jar s3tool-0.0.2.jar
 ```
 
 ## Two-way Sync
@@ -73,7 +73,7 @@ directory=sync
 ```
 
 ```
-java -jar s3tool-0.0.2-SNAPSHOT.jar
+java -jar s3tool-0.0.2.jar
 ```
 
 ## Admin tasks
